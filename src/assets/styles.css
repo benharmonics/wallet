@@ -1,0 +1,173 @@
+:root {
+  --bg-color: #1e1e1e;
+  --text-color: #e0e0e0;
+  --accent-color: #4fc3f7;
+  --border-color: #333;
+  --font-family: "Fira Code", "Courier New", monospace;
+  --font-size: 16px;
+  --line-height: 1.5;
+  --padding: 1rem;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background-color: #2c2c2c;
+  border: 1px solid var(--border-color);
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+button:hover,
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+code,
+pre {
+  font-family: var(--font-family);
+  background-color: #2a2a2a;
+  padding: 0.5rem;
+  border-radius: 4em;
+  overflow-x: auto;
+}
+
+pre {
+  white-space: pre-wrap;
+}
+
+.container {
+  padding: var(--padding);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 1rem 0;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #2a2a2a;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--accent-color);
+}
+
+.navbar-right {
+  display: flex;
+  gap: 1rem;
+}
+
+.navbar a {
+  color: var(--text-color);
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.navbar a:hover {
+  color: var(--accent-color);
+}
+
+#app {
+  padding: 4rem 10rem;
+}
+
+/* Faking Tailwind stuff */
+/**/
+/*/* Base selector for vertical spacing */*/
+/*[class^="space-y-"] > *:not(:first-child) {*/
+/*  margin-top: 0; /* Fallback default, will be overridden below */*/
+/*}*/
+/**/
+/*/* Tailwind spacing scale: https://tailwindcss.com/docs/spacing */*/
+/**/
+/*.space-y-0 > *:not(:first-child)  { margin-top: 0rem; }*/
+/*.space-y-0.5 > *:not(:first-child){ margin-top: 0.125rem; }*/
+/*.space-y-1 > *:not(:first-child)  { margin-top: 0.25rem; }*/
+/*.space-y-1.5 > *:not(:first-child){ margin-top: 0.375rem; }*/
+/*.space-y-2 > *:not(:first-child)  { margin-top: 0.5rem; }*/
+/*.space-y-2.5 > *:not(:first-child){ margin-top: 0.625rem; }*/
+/*.space-y-3 > *:not(:first-child)  { margin-top: 0.75rem; }*/
+/*.space-y-3.5 > *:not(:first-child){ margin-top: 0.875rem; }*/
+/*.space-y-4 > *:not(:first-child)  { margin-top: 1rem; }*/
+/*.space-y-5 > *:not(:first-child)  { margin-top: 1.25rem; }*/
+/*.space-y-6 > *:not(:first-child)  { margin-top: 1.5rem; }*/
+/*.space-y-7 > *:not(:first-child)  { margin-top: 1.75rem; }*/
+/*.space-y-8 > *:not(:first-child)  { margin-top: 2rem; }*/
+/*.space-y-9 > *:not(:first-child)  { margin-top: 2.25rem; }*/
+/*.space-y-10 > *:not(:first-child) { margin-top: 2.5rem; }*/
+/*.space-y-11 > *:not(:first-child) { margin-top: 2.75rem; }*/
+/*.space-y-12 > *:not(:first-child) { margin-top: 3rem; }*/
+/*.space-y-14 > *:not(:first-child) { margin-top: 3.5rem; }*/
+/*.space-y-16 > *:not(:first-child) { margin-top: 4rem; }*/
+/**/
+/*[class^="space-x-"] > *:not(:first-child) {*/
+/*  margin-left: 0; /* Fallback default, will be overridden below */*/
+/*}*/
+/**/
+/*.space-x-0 > *:not(:first-child)  { margin-left: 0rem; }*/
+/*.space-x-0.5 > *:not(:first-child){ margin-left: 0.125rem; }*/
+/*.space-x-1 > *:not(:first-child)  { margin-left: 0.25rem; }*/
+/*.space-x-1.5 > *:not(:first-child){ margin-left: 0.375rem; }*/
+/*.space-x-2 > *:not(:first-child)  { margin-left: 0.5rem; }*/
+/*.space-x-2.5 > *:not(:first-child){ margin-left: 0.625rem; }*/
+/*.space-x-3 > *:not(:first-child)  { margin-left: 0.75rem; }*/
+/*.space-x-3.5 > *:not(:first-child){ margin-left: 0.875rem; }*/
+/*.space-x-4 > *:not(:first-child)  { margin-left: 1rem; }*/
+/*.space-x-5 > *:not(:first-child)  { margin-left: 1.25rem; }*/
+/*.space-x-6 > *:not(:first-child)  { margin-left: 1.5rem; }*/
+/*.space-x-7 > *:not(:first-child)  { margin-left: 1.75rem; }*/
+/*.space-x-8 > *:not(:first-child)  { margin-left: 2rem; }*/
+/*.space-x-9 > *:not(:first-child)  { margin-left: 2.25rem; }*/
+/*.space-x-10 > *:not(:first-child) { margin-left: 2.5rem; }*/
+/*.space-x-11 > *:not(:first-child) { margin-left: 2.75rem; }*/
+/*.space-x-12 > *:not(:first-child) { margin-left: 3rem; }*/
+/*.space-x-14 > *:not(:first-child) { margin-left: 3.5rem; }*/
+/*.space-x-16 > *:not(:first-child) { margin-left: 4rem; }*/
+/**/
