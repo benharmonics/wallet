@@ -102,7 +102,9 @@ export default class Wallet {
     if (!b44.privateKey) {
       throw new Error("Failed to derive private key");
     }
-    const sk = Buffer.from(b44.privateKey).toString("hex");
+    const sk = [...b44.privateKey]
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
     return new EWallet(sk, this.provider);
   }
 
