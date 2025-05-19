@@ -5,7 +5,6 @@ import { encryptVault, decryptVault, hasVault } from "./vault";
 
 type WalletState = {
   mnemonic?: string | null;
-  wallet?: Wallet | null;
   hasVault: boolean;
   addressIndex: number;
 };
@@ -21,7 +20,7 @@ export function walletPage() {
         <button id="unlock" class="text-white font-semibold rounded-3xl px-5 py-2 bg-blue-700 hover:bg-blue-800">🔓 Unlock Vault</button>
         <button id="save" class="text-white font-semibold rounded-3xl px-5 py-2 bg-gray-800 hover:bg-gray-900">🔑 ${state.hasVault ? "Enter New" : "Save"} Mnemonic</button>
       </div>
-      <pre id="output" class="py-2 px-5 bg-neutral-300 text-gray-900 rounded-3xl hidden"></pre>
+      <pre id="output" class="py-2 px-5 bg-neutral-300 text-gray-900 rounded-3xl max-w-128 text-wrap hidden"></pre>
       <div id="wallet-buttons" class="hidden space-y-5">
         <div class="flex space-x-5 items-center">
           <span class="text-lg">Balance:</span>
@@ -43,9 +42,6 @@ export function walletPage() {
 
 export function bindWalletEvents() {
   document.getElementById("save")!.onclick = async () => {
-    if (state.hasVault) {
-      // TODO
-    }
     const mnemonicWordsHtml: string[] = [];
     for (let wordNum = 1; wordNum <= 12; wordNum++) {
       mnemonicWordsHtml.push(`
@@ -72,7 +68,7 @@ export function bindWalletEvents() {
           <div class="space-y-2">
             <div class="grid">
               <label>Password</label>
-              <input name="password" type="password" name="password" placeholder="Choose a password to unlock your account" class="border border-1 focus:border-blue-500 bg-neutral-100 rounded px-1"/>
+              <input id="password-input" type="password" name="password" placeholder="Choose a password to unlock your account" class="border border-1 focus:border-blue-500 bg-neutral-100 rounded px-1"/>
             </div>
             <div class="grid grid-cols-2 gap-x-6 gap-y-2">
               <p class="col-span-2">Enter your 12-word mnemonic, one word at a time.</p>
@@ -81,7 +77,7 @@ export function bindWalletEvents() {
             </div>
           </div>
           <div class="flex flex-1 justify-end space-x-4">
-            <button id="save-cancel-btn" class="bg-linear-to-bl from-gray-800 to-gray-600 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Cancel</button>
+            <button id="cancel-btn" class="bg-linear-to-bl from-gray-800 to-gray-600 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Cancel</button>
             <button type="submit" class="bg-linear-to-bl from-violet-500 to-fuchsia-500 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Submit</button>
           </div>
         </div>
@@ -100,11 +96,11 @@ export function bindWalletEvents() {
           <div class="space-y-2">
             <div class="grid">
               <label>Password</label>
-              <input name="password" type="password" name="password" placeholder="Enter your password to unlock your account" class="border border-1 focus:border-blue-500 bg-neutral-100 rounded px-1"/>
+              <input id="password-input" type="password" name="password" placeholder="Enter your password to unlock your account" class="border border-1 focus:border-blue-500 bg-neutral-100 rounded px-1"/>
             </div>
           </div>
           <div class="flex flex-1 justify-end space-x-4">
-            <button id="unlock-cancel-btn" class="bg-linear-to-bl from-gray-800 to-gray-600 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Cancel</button>
+            <button id="cancel-btn" class="bg-linear-to-bl from-gray-800 to-gray-600 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Cancel</button>
             <button type="submit" class="bg-linear-to-bl from-violet-500 to-fuchsia-500 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Submit</button>
           </div>
         </div>
@@ -124,6 +120,37 @@ export function bindWalletEvents() {
     await setAddressIndex(state.addressIndex);
   }
 
+  document.getElementById("send")!.onclick = async () => {
+    showModal()
+    const modal = document.getElementById("modal-content");
+    modal!.innerHTML = `
+      <h2 class="text-2xl font-semibold pb-5">Send Ethereum from your wallet</h2>
+      <form id="send-form" class="grid min-w-128" autocomplete="off">
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <div class="grid">
+              <label>To</label>
+              <input type="text" name="to" placeholder="Enter the address to which funds will be sent" class="border border-1 focus:border-blue-500 bg-neutral-100 rounded px-1"/>
+            </div>
+            <div class="grid">
+              <label>Amount</label>
+              <input type="text" inputmode="decimal" name="amount" placeholder="Amount in ETH" class="border border-1 focus:border-blue-500 bg-neutral-100 rounded px-1"/>
+            </div>
+            <div class="text-xs space-x-1">
+              <span class="opacity-80">From</span>
+              <span id="from">(Account ${state.addressIndex})</span>
+            </div>
+          </div>
+          <div class="flex flex-1 justify-end space-x-4">
+            <button id="cancel-btn" class="bg-linear-to-bl from-gray-800 to-gray-600 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Cancel</button>
+            <button type="submit" class="bg-linear-to-bl from-violet-500 to-fuchsia-500 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Submit</button>
+          </div>
+        </div>
+      </form>
+    `;
+    bindSendFormEvents();
+  }
+
   showHelpText();
 }
 
@@ -131,6 +158,9 @@ function bindSaveFormEvents() {
   const form = document.getElementById("save-form");
   form!.addEventListener("submit", async (e) => {
     e.preventDefault();
+    hideModal();
+
+    document.getElementById("password-input")!.focus();
 
     const formData = new FormData(form as HTMLFormElement);
     const password = formData.get("password")!.toString();
@@ -142,12 +172,10 @@ function bindSaveFormEvents() {
 
     await encryptVault(mnemonic, password);
     state.mnemonic = mnemonic;
-
-    hideModal();
   })
 
-  document.getElementById("save-cancel-btn")!.addEventListener("click", (e) => {
-    e.preventDefault()
+  document.getElementById("cancel-btn")!.addEventListener("click", (e) => {
+    e.preventDefault();
     hideModal()
   });
 
@@ -173,10 +201,12 @@ function bindUnlockFormEvents() {
     e.preventDefault();
     hideModal();
 
+    document.getElementById("password-input")!.focus();
+    const output = document.getElementById("output");
+
     const formData = new FormData(form as HTMLFormElement);
     const password = formData.get("password")!.toString();
     const result = await decryptVault(password);
-    const output = document.getElementById("output");
     if (result) {
       const walletButtons = document.getElementById("wallet-buttons");
       state.mnemonic = result;
@@ -191,7 +221,58 @@ function bindUnlockFormEvents() {
     }
   })
 
-  document.getElementById("unlock-cancel-btn")!.addEventListener("click", (e) => {
+  document.getElementById("cancel-btn")!.addEventListener("click", (e) => {
+    e.preventDefault()
+    hideModal()
+  });
+}
+
+function bindSendFormEvents() {
+  const output = document.getElementById("output");
+  if (!state.mnemonic) {
+    output!.textContent = "❌ Unable to send funds - please unlock your vault.";
+    return;
+  }
+
+  const wallet = new Wallet(state.mnemonic)
+
+  wallet.address(state.addressIndex).then(addr => {
+    document.getElementById("from")!.textContent = `${addr} (Account ${state.addressIndex})`;
+  });
+
+  const form = document.getElementById("send-form");
+  form!.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    hideModal();
+
+    const formData = new FormData(form as HTMLFormElement);
+    const amount = formData.get("amount");
+    const to = formData.get("to");
+    const errors: string[] = [];
+    if (!amount) {
+      errors.push("amount is required")
+    }
+    if (!to) {
+      errors.push("destination is required")
+    }
+    if (errors.length > 0) {
+      output!.textContent = `❌ ${errors.join(", ")}`;
+      return;
+    }
+
+    output!.textContent = `⏳ Sending ${amount!.toString()} ETH to ${to!.toString()}...`;
+    try {
+      const res = await wallet.send(amount!.toString(), to!.toString(), state.addressIndex);
+      output!.textContent =
+        `✅ Sent ${amount!.toString()} ETH to ${to!.toString()}. ` +
+        `Transaction Hash: ${res.hash}`;
+      for (let i = 0; i < 2; i++) setTimeout(getBalance, 5000);
+    } catch (e) {
+      output!.textContent = `❌ Failed to send: ${e}`
+    }
+  })
+
+  document.getElementById("cancel-btn")!.addEventListener("click", (e) => {
     e.preventDefault()
     hideModal()
   });
@@ -232,4 +313,8 @@ function showHelpText() {
   } else if (state.mnemonic) {
     vaultStatus!.textContent = "Your wallet has been unlocked.";
   }
+}
+
+function setVaultStatusText(msg: string) {
+  document.getElementById("vault-status")!.textContent = msg;
 }
