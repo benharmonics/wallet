@@ -1,4 +1,5 @@
 import { walletPage, bindWalletEvents } from "./accounts";
+import { hideModal } from "./modal";
 
 const app = document.getElementById("app");
 
@@ -15,6 +16,11 @@ document.querySelectorAll("nav a").forEach((link) => {
     renderPage(page);
   });
 });
+
+const modalOverlay = document.getElementById("modal-overlay");
+modalOverlay!.addEventListener("click", e => {
+  if (e.target === modalOverlay) hideModal();
+})
 
 function renderPage(page: string | null) {
   if (!page || !pages[page]) {
