@@ -2,6 +2,7 @@ import Wallet from "../wallet";
 import { formatEther } from "ethers";
 import { showModal, hideModal } from "./modal";
 import { encryptVault, decryptVault, hasVault } from "./vault";
+import { repeat } from "./util";
 
 type WalletState = {
   mnemonic?: string | null;
@@ -13,18 +14,21 @@ const state: WalletState = { hasVault: hasVault(), addressIndex: 0 };
 
 export function walletPage() {
   return `
-    <h1 class="text-4xl p-5 min-w-128 text-white font-semibold bg-linear-to-bl from-violet-500 to-fuchsia-500 rounded">Wallet</h1>
+    <h1 class="text-4xl p-5 min-w-128 text-white font-semibold bg-linear-to-bl from-violet-500 to-fuchsia-500 rounded">Ethereum Wallet</h1>
     <div class="flex flex-col space-y-5">
       <div id="vault-status"></div>
       <div class="flex space-x-5">
         <button id="unlock" class="text-white font-semibold rounded-3xl px-5 py-2 bg-blue-700 hover:bg-blue-800">🔓 Unlock Vault</button>
         <button id="save" class="text-white font-semibold rounded-3xl px-5 py-2 bg-gray-800 hover:bg-gray-900">🔑 ${state.hasVault ? "Enter New" : "Save"} Mnemonic</button>
       </div>
-      <pre id="output" class="py-2 px-5 bg-neutral-300 text-gray-900 rounded-3xl max-w-128 text-wrap hidden"></pre>
+      <pre id="output" class="py-2 px-5 bg-neutral-300 text-gray-900 rounded-3xl max-w-128 min-h-36 overflow-auto text-wrap hidden"></pre>
       <div id="wallet-buttons" class="hidden space-y-5">
         <div class="flex space-x-5 items-center">
           <span class="text-lg">Balance:</span>
-          <span id="balance" class="text-xl font-semibold"></span>
+          <div class="space-x-0.5">
+            <span id="balance" class="text-xl font-semibold"></span>
+            <span id="asset" class="text-xl font-semibold">ETH</span>
+          </div>
         </div>
         <div class="flex space-x-2 items-center">
           <button id="decrement-address-index" class="text-xs bg-blue-700 hover:bg-blue-800 p-1 rounded">Prev</button>
@@ -78,7 +82,7 @@ export function bindWalletEvents() {
           </div>
           <div class="flex flex-1 justify-end space-x-4">
             <button id="cancel-btn" class="bg-linear-to-bl from-gray-800 to-gray-600 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Cancel</button>
-            <button type="submit" class="bg-linear-to-bl from-violet-500 to-fuchsia-500 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Submit</button>
+            <button id="submit-btn" type="submit" class="bg-linear-to-bl from-violet-500 to-fuchsia-500 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Submit</button>
           </div>
         </div>
       </form>
@@ -96,12 +100,12 @@ export function bindWalletEvents() {
           <div class="space-y-2">
             <div class="grid">
               <label>Password</label>
-              <input id="password-input" type="password" name="password" placeholder="Enter your password to unlock your account" class="border border-1 focus:border-blue-500 bg-neutral-100 rounded px-1"/>
+              <input id="password-input" type="password" name="password" placeholder="Enter your password to unlock your account" class="border border-1 focus:border-blue-500 bg-neutral-100 rounded px-1" />
             </div>
           </div>
           <div class="flex flex-1 justify-end space-x-4">
             <button id="cancel-btn" class="bg-linear-to-bl from-gray-800 to-gray-600 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Cancel</button>
-            <button type="submit" class="bg-linear-to-bl from-violet-500 to-fuchsia-500 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Submit</button>
+            <button id="submit-btn" type="submit" class="bg-linear-to-bl from-violet-500 to-fuchsia-500 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Submit</button>
           </div>
         </div>
       </form>
@@ -130,7 +134,7 @@ export function bindWalletEvents() {
           <div class="space-y-2">
             <div class="grid">
               <label>To</label>
-              <input type="text" name="to" placeholder="Enter the address to which funds will be sent" class="border border-1 focus:border-blue-500 bg-neutral-100 rounded px-1"/>
+              <input id="to" type="text" name="to" placeholder="Enter the address to which funds will be sent" class="border border-1 focus:border-blue-500 bg-neutral-100 rounded px-1"/>
             </div>
             <div class="grid">
               <label>Amount</label>
@@ -140,10 +144,14 @@ export function bindWalletEvents() {
               <span class="opacity-80">From</span>
               <span id="from">(Account ${state.addressIndex})</span>
             </div>
+            <div class="text-xs space-x-1">
+              <span class="opacity-80">Balance:</span>
+              <span id="send-form-balance"></span>
+            </div>
           </div>
           <div class="flex flex-1 justify-end space-x-4">
             <button id="cancel-btn" class="bg-linear-to-bl from-gray-800 to-gray-600 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Cancel</button>
-            <button type="submit" class="bg-linear-to-bl from-violet-500 to-fuchsia-500 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Submit</button>
+            <button id="submit-btn" type="submit" class="bg-linear-to-bl from-violet-500 to-fuchsia-500 py-2 px-4 rounded-xl text-xl text-white text-shadow font-semibold">Submit</button>
           </div>
         </div>
       </form>
@@ -151,16 +159,15 @@ export function bindWalletEvents() {
     bindSendFormEvents();
   }
 
-  showHelpText();
+  showVaultStatusText();
 }
 
 function bindSaveFormEvents() {
   const form = document.getElementById("save-form");
+  focusElementOnEnter(form);
   form!.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideModal();
-
-    document.getElementById("password-input")!.focus();
 
     const formData = new FormData(form as HTMLFormElement);
     const password = formData.get("password")!.toString();
@@ -173,11 +180,6 @@ function bindSaveFormEvents() {
     await encryptVault(mnemonic, password);
     state.mnemonic = mnemonic;
   })
-
-  document.getElementById("cancel-btn")!.addEventListener("click", (e) => {
-    e.preventDefault();
-    hideModal()
-  });
 
   for (let wordNum = 1; wordNum <= 12; wordNum++) {
     const input = document.getElementById(`word${wordNum}`) as HTMLInputElement;
@@ -193,15 +195,22 @@ function bindSaveFormEvents() {
       }
     })
   }
+
+  document.getElementById("password-input")!.focus();
+
+  document.getElementById("cancel-btn")!.addEventListener("click", (e) => {
+    e.preventDefault();
+    hideModal()
+  });
 }
 
 function bindUnlockFormEvents() {
   const form = document.getElementById("unlock-form");
+  focusElementOnEnter(form);
   form!.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideModal();
 
-    document.getElementById("password-input")!.focus();
     const output = document.getElementById("output");
 
     const formData = new FormData(form as HTMLFormElement);
@@ -210,7 +219,7 @@ function bindUnlockFormEvents() {
     if (result) {
       const walletButtons = document.getElementById("wallet-buttons");
       state.mnemonic = result;
-      showHelpText();
+      showVaultStatusText();
       getBalance();
       getAddress();
       output!.textContent = `🔓 Vault unlocked!`;
@@ -221,6 +230,8 @@ function bindUnlockFormEvents() {
     }
   })
 
+  document.getElementById("password-input")!.focus();
+
   document.getElementById("cancel-btn")!.addEventListener("click", (e) => {
     e.preventDefault()
     hideModal()
@@ -230,6 +241,7 @@ function bindUnlockFormEvents() {
 function bindSendFormEvents() {
   const output = document.getElementById("output");
   if (!state.mnemonic) {
+    console.error("Attempted to send funds with locked vault")
     output!.textContent = "❌ Unable to send funds - please unlock your vault.";
     return;
   }
@@ -240,7 +252,11 @@ function bindSendFormEvents() {
     document.getElementById("from")!.textContent = `${addr} (Account ${state.addressIndex})`;
   });
 
+  document.getElementById("send-form-balance")!.textContent = document.getElementById("balance")!.textContent;
+  document.getElementById("to")!.focus();
+
   const form = document.getElementById("send-form");
+  focusElementOnEnter(form);
   form!.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideModal();
@@ -266,7 +282,7 @@ function bindSendFormEvents() {
       output!.textContent =
         `✅ Sent ${amount!.toString()} ETH to ${to!.toString()}. ` +
         `Transaction Hash: ${res.hash}`;
-      for (let i = 0; i < 2; i++) setTimeout(getBalance, 5000);
+      repeat(getBalance, 3, 5000)
     } catch (e) {
       output!.textContent = `❌ Failed to send: ${e}`
     }
@@ -283,10 +299,10 @@ async function getBalance(wallet?: Wallet) {
     return "Unavailable - please enter a mnemonic.";
   }
   const balance = document.getElementById("balance");
-  balance!.textContent = "Loading...";
+  balance!.textContent = "...";
   wallet ??= new Wallet(state.mnemonic);
   const balanceWei = await wallet.balance(state.addressIndex);
-  balance!.textContent = `${formatEther(balanceWei)} ETH`;
+  balance!.textContent = formatEther(balanceWei);
 }
 
 async function getAddress(wallet?: Wallet) {
@@ -306,15 +322,23 @@ async function setAddressIndex(addressIndex: number, wallet?: Wallet) {
   getAddress(wallet);
 }
 
-function showHelpText() {
+function showVaultStatusText() {
   const vaultStatus = document.getElementById("vault-status");
   if (state.hasVault && !state.mnemonic) {
-    vaultStatus!.textContent = `Enter your password to unlock your wallet`;
+    vaultStatus!.textContent = `Enter your password to unlock your wallet.`;
   } else if (state.mnemonic) {
     vaultStatus!.textContent = "Your wallet has been unlocked.";
   }
 }
 
-function setVaultStatusText(msg: string) {
-  document.getElementById("vault-status")!.textContent = msg;
+function focusElementOnEnter(form: HTMLElement | null, elementId: string = "submit-btn") {
+  form!.addEventListener("keypress", (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // TODO: submit on enter
+      const element = document.getElementById(elementId);
+      element!.focus();
+    }
+  })
 }
+
