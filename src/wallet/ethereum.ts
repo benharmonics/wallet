@@ -3,7 +3,6 @@ import {
   getDefaultProvider,
   parseUnits,
   Contract,
-  Networkish,
   Provider,
   TransactionResponse,
   Wallet as EWallet,
@@ -22,7 +21,7 @@ export class EthereumWallet {
   constructor(
     mnemonic: string,
     protocol: Protocol = "ethereum",
-    network: Networkish = "sepolia",
+    network: string = "sepolia",
   ) {
     const rpcEndpoint = providerRpcEndpoint(protocol, network);
     this.provider = getDefaultProvider(rpcEndpoint);
