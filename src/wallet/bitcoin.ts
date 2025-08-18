@@ -6,6 +6,7 @@ import bip44, { Bip44Coin } from "../bip44";
 import {
   AddressUtxoResult,
   addressUtxosAndBalance,
+  broadcastTx,
   EsploraUtxo,
   feeEstimates,
 } from "./esplora";
@@ -43,7 +44,7 @@ function feeForTx(
  * Dust threshold per Bitcoin Core heuristic: 3 * inputVBytes * feeRate.
  * (Change below this should be added to the fee instead of creating an output.)
  */
-function dustThreshold(feeRate: number, inputVBytes: number): bigint {
+function dustThreshold(feeRate: number, inputVBytes: number = P2WPKH_WEIGHTS.inputVBytes): bigint {
   const sats = Math.ceil(3 * inputVBytes * feeRate);
   return BigInt(sats);
 }
@@ -78,23 +79,20 @@ export class BitcoinWallet {
     return this.network === bitcoin.networks.bitcoin;
   }
 
-  async utxos(addressIndex: number = 0): Promise<AddressUtxoResult> {
+  async utxos(addressIndex: number): Promise<AddressUtxoResult> {
     const address = await this.address(addressIndex);
     return addressUtxosAndBalance(address, { mainnet: this.mainnet });
   }
 
-  private async bip44(addressIndex: number): Promise<BIP32Interface> {
+  private async bip32(addressIndex: number): Promise<BIP32Interface> {
     return bip44(this.mnemonic, { coin: Bip44Coin.bitcoin, addressIndex });
   }
 
   async address(addressIndex: number): Promise<string> {
-    const b44 = await bip44(this.mnemonic, {
-      coin: Bip44Coin.bitcoin,
-      addressIndex,
-    });
+    const b32 = await this.bip32(addressIndex);
     const { address } = bitcoin.payments.p2wpkh({
       network: this.network,
-      pubkey: Buffer.from(b44.publicKey),
+      pubkey: Buffer.from(b32.publicKey),
     });
     if (!address) {
       throw new Error("Unable to derive address");
@@ -102,14 +100,42 @@ export class BitcoinWallet {
     return address;
   }
 
-  async send(amountBtc: string, to: string, addressIndex: number) {
-    const [b44, utxos, feeRate] = await Promise.all([
-      this.bip44(addressIndex),
+  async send(amountBtc: string, to: string, addressIndex: number): Promise<string> {
+    const [b32, utxos, feeRate, changeAddress] = await Promise.all([
+      this.bip32(addressIndex),
       this.utxos(addressIndex),
-      feeEstimates(this.mainnet),
+      feeEstimates({ mainnet: this.mainnet }),
+      this.address(addressIndex + 1),
     ]);
-    if (!b44.privateKey) throw new Error("Failed to generate private key");
-    const keypair = ECPair.fromPrivateKey(b44.privateKey);
+    if (!b32.privateKey) {
+      throw new Error("Failed to generate private key");
+    }
+    const keypair = ECPair.fromPrivateKey(b32.privateKey);
+
+    const balance = BigInt(utxos.balances.confirmed);
+    const amount = btcToSatoshis(amountBtc);
+    const _feeRate = feeRate.medium;
+    const dust = dustThreshold(_feeRate);
+
+    const outputs = [{ address: to, value: Number(amount) }];
+
+    // Fee & change outputs
+    let fee = feeForTx(_feeRate, utxos.confirmedUtxos.length, 1)
+    const changeOneOutput = balance - amount - fee;
+    if (changeOneOutput < 0) {
+      throw new Error(`Insufficient balance: have ${balance}, need ${amount + fee}`);
+    } else if (changeOneOutput > dust) {
+      fee = feeForTx(_feeRate, utxos.confirmedUtxos.length, 2);
+      const changeTwoOutputs = balance - amount - fee;
+      if (changeTwoOutputs > dust) {
+        console.log(`Sending change ${changeTwoOutputs} to ${changeAddress}`);
+        outputs.push({ address: changeAddress, value: Number(changeTwoOutputs) });
+      } else {
+        console.warn(`Tried to return change to ${changeAddress}, but change would have been below dust threshold of ${dust} when accounting for fees - folding into fee instead`);
+      }
+    } else {
+      console.warn(`Change ${changeOneOutput} below dust threshold of ${dust} - folding into fee instead of returning to ${changeAddress}`);
+    }
 
     const toInput = (utxo: EsploraUtxo) => ({
       hash: utxo.txid,
@@ -120,9 +146,6 @@ export class BitcoinWallet {
       },
     });
 
-    const outputs = [{ address: to, value: Number(btcToSatoshis(amountBtc)) }];
-    // TODO: fees & change
-
     const psbt = new bitcoin.Psbt({ network: this.network })
       .addInputs(utxos.confirmedUtxos.map(toInput))
       .addOutputs(outputs)
@@ -132,6 +155,9 @@ export class BitcoinWallet {
     }
 
     const txHex = psbt.finalizeAllInputs().extractTransaction().toHex();
-    console.log("Bitcoin transaction:", txHex);
+    console.log(`Bitcoin transaction: sending ${amount} from ${utxos.address} to ${to}`);
+    console.log("Transacton hex:", txHex);
+
+    return broadcastTx(txHex, { mainnet: this.mainnet });
   }
 }

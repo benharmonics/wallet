@@ -32,10 +32,10 @@ export type AddressUtxoResult = {
   balances: AddressBalances;
 };
 
-export type AddressUtxosAndBalanceOptions = {
+export type EsploraOptions = {
   requestOpts?: JsonRequestOptions;
-  provider?: EsploraProvider;
-  mainnet?: boolean;
+  provider: EsploraProvider;
+  mainnet: boolean;
 };
 
 export type FeeEstimateResult = {
@@ -47,24 +47,39 @@ export type FeeEstimateResult = {
   weekly: number; // cheapest in about a week
 };
 
-function baseEsploraUrl(mainnet: boolean, provider: EsploraProvider): string {
-  switch (provider) {
+const DEFAULT_ESPLORA_OPTS: EsploraOptions = { provider: "mempool.space", mainnet: false };
+
+function baseEsploraUrl(opts: EsploraOptions): string {
+  switch (opts.provider) {
     case "mempool.space":
-      return mainnet
+      return opts.mainnet
         ? "https://mempool.space/api"
         : "https://mempool.space/testnet/api";
     case "blockstream":
-      return mainnet
+      return opts.mainnet
         ? "https://blockstream.info/api"
         : "https://blockstream.info/testnet/api";
   }
 }
 
+export async function broadcastTx(txHex: string, opts: Partial<EsploraOptions>): Promise<string> {
+  const baseUrl = baseEsploraUrl({ ...DEFAULT_ESPLORA_OPTS, ...opts });
+  const res = await fetch(`${baseUrl}/tx`, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: txHex,
+  });
+  const body = await res.text();
+  if (!res.ok) {
+    throw new Error(`Broadcast failed: ${res.status} ${res.statusText} - ${body}`);
+  }
+  return body.trim(); // txid
+}
+
 export async function feeEstimates(
-  mainnet: boolean,
-  provider: EsploraProvider = "mempool.space",
+  opts: Partial<EsploraOptions>,
 ): Promise<FeeEstimateResult> {
-  const baseUrl = baseEsploraUrl(mainnet, provider);
+  const baseUrl = baseEsploraUrl({ ...DEFAULT_ESPLORA_OPTS, ...opts });
   const res: Record<string, number> = await fetchJson(
     `${baseUrl}/fee-estimates`,
   );
@@ -84,12 +99,9 @@ export async function feeEstimates(
  */
 export async function addressUtxosAndBalance(
   address: string,
-  opts: AddressUtxosAndBalanceOptions = {},
+  opts: Partial<EsploraOptions>,
 ): Promise<AddressUtxoResult> {
-  const baseUrl = baseEsploraUrl(
-    opts.mainnet ?? false,
-    opts.provider ?? "mempool.space",
-  );
+  const baseUrl = baseEsploraUrl({ ...DEFAULT_ESPLORA_OPTS, ...opts });
   const url = `${baseUrl}/address/${address}/utxo`;
   const cfg = { ...DEFAULT_JSON_REQUEST_OPTIONS, ...opts.requestOpts };
 
