@@ -47,7 +47,10 @@ export type FeeEstimateResult = {
   weekly: number; // cheapest in about a week
 };
 
-const DEFAULT_ESPLORA_OPTS: EsploraOptions = { provider: "mempool.space", mainnet: false };
+const DEFAULT_ESPLORA_OPTS: EsploraOptions = {
+  provider: "mempool.space",
+  mainnet: false,
+};
 
 function baseEsploraUrl(opts: EsploraOptions): string {
   switch (opts.provider) {
@@ -62,7 +65,10 @@ function baseEsploraUrl(opts: EsploraOptions): string {
   }
 }
 
-export async function broadcastTx(txHex: string, opts: Partial<EsploraOptions>): Promise<string> {
+export async function broadcastTx(
+  txHex: string,
+  opts: Partial<EsploraOptions>,
+): Promise<string> {
   const baseUrl = baseEsploraUrl({ ...DEFAULT_ESPLORA_OPTS, ...opts });
   const res = await fetch(`${baseUrl}/tx`, {
     method: "POST",
@@ -71,7 +77,9 @@ export async function broadcastTx(txHex: string, opts: Partial<EsploraOptions>):
   });
   const body = await res.text();
   if (!res.ok) {
-    throw new Error(`Broadcast failed: ${res.status} ${res.statusText} - ${body}`);
+    throw new Error(
+      `Broadcast failed: ${res.status} ${res.statusText} - ${body}`,
+    );
   }
   return body.trim(); // txid
 }

@@ -18,9 +18,9 @@ document.querySelectorAll("nav a").forEach((link) => {
 });
 
 const modalOverlay = document.getElementById("modal-overlay");
-modalOverlay!.addEventListener("click", e => {
+modalOverlay!.addEventListener("click", (e) => {
   if (e.target === modalOverlay) hideModal();
-})
+});
 
 function renderPage(page: string | null) {
   if (!page || !pages[page]) {
