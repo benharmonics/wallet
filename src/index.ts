@@ -1,24 +1,28 @@
 import "dotenv/config";
-import { formatUnits } from "ethers";
+// import { formatUnits } from "ethers";
 
-import { BitcoinWallet, EthereumWallet } from "@wallet";
-import { Erc20ContractAddresses } from "./contract";
+import { RippleWallet } from "@wallet";
+// import { Erc20ContractAddresses } from "./contract";
 
 async function main() {
   const mnemonic = process.env.MNEMONIC;
   if (!mnemonic) {
     throw new Error("MNEMONIC is required");
   }
-  const btcWallet = new BitcoinWallet(mnemonic);
-
-  const iAddress = 0;
-  const iChange = iAddress + 1;
-  const iTo = 100;
-
-  console.log(
-    `UTXO(s) on wallet ${iAddress}:`,
-    await btcWallet.utxos(iAddress),
-  );
+  const wallet = new RippleWallet(mnemonic);
+  console.log("Address:", await wallet.address());
+  console.log("Balance:", await wallet.balance());
+  await wallet.disconnect();
+  // const btcWallet = new BitcoinWallet(mnemonic);
+  //
+  // const iAddress = 0;
+  // const iChange = iAddress + 1;
+  // const iTo = 100;
+  //
+  // console.log(
+  //   `UTXO(s) on wallet ${iAddress}:`,
+  //   await btcWallet.utxos(iAddress),
+  // );
 
   // Send transaction
   // const [to, change] = await Promise.all([

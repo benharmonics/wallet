@@ -1,4 +1,4 @@
-export type Protocol = "ethereum" | "bitcoin";
+export type Protocol = "ethereum" | "bitcoin" | "ripple";
 
 export function providerRpcEndpoint(protocol: Protocol, network: string) {
   switch (protocol) {
@@ -20,7 +20,16 @@ export function providerRpcEndpoint(protocol: Protocol, network: string) {
         case "testnet":
           return "https://bitcoin-testnet-rpc.publicnode.com";
       }
+    case "ripple":
+      switch (network) {
+        case "testnet":
+          return "wss://s.altnet.rippletest.net:51233";
+        case "devnet":
+          return "wss://s.devnet.rippletest.net:51233";
+        case "mainnet":
+          throw new Error("unimplemented");
+      }
     default:
-      throw new Error(`Unsupported protocol ${protocol}`);
+      throw new Error(`Unsupported protocol/network: ${protocol}/${network}`);
   }
 }
