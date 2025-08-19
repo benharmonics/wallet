@@ -24,7 +24,8 @@ export class RippleWallet {
   }
 
   async disconnect() {
-    return this.client?.disconnect();
+    await this.client?.disconnect();
+    this.client = undefined;
   }
 
   private wallet(addressIndex: number) {

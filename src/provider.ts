@@ -10,6 +10,8 @@ export function providerRpcEndpoint(protocol: Protocol, network: string) {
           return "https://ethereum-sepolia-rpc.publicnode.com";
         case "holesky":
           return "https://ethereum-holesky-rpc.publicnode.com";
+        case "hoodi":
+          return "https://ethereum-hoodi-rpc.publicnode.com";
         default:
           throw new Error(`Unsupported Ethereum network ${network}`);
       }
@@ -27,7 +29,7 @@ export function providerRpcEndpoint(protocol: Protocol, network: string) {
         case "devnet":
           return "wss://s.devnet.rippletest.net:51233";
         case "mainnet":
-          throw new Error("unimplemented");
+          return "wss://xrplcluster.com";
       }
     default:
       throw new Error(`Unsupported protocol/network: ${protocol}/${network}`);
