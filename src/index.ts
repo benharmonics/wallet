@@ -1,19 +1,18 @@
-import "dotenv/config";
-
+import { AppConfiguration } from "./config";
 import { BitcoinWallet, WalletSettings } from "@wallet";
-const RECOVERY_PHRASE_PATH =
-  process.env.RECOVERY_PHRASE_PATH ?? "./.data/wallet._phrase.json";
-const WALLET_DATA_PATH =
-  process.env.WALLET_DATA_PATH ?? "./.data/wallet._accounts.json";
 
 async function main() {
+  const { mnemonicPath, walletDataPath, mainnet } = new AppConfiguration();
   const settings = await WalletSettings.load({
-    mnemonicPath: RECOVERY_PHRASE_PATH,
-    walletStatePath: WALLET_DATA_PATH,
+    mnemonicPath,
+    walletDataPath,
     password: "password",
   });
 
-  const btcWallet = new BitcoinWallet(settings.mnemonic);
+  const btcWallet = new BitcoinWallet(
+    settings.mnemonic,
+    mainnet ? "mainnet" : "testnet",
+  );
   const iAddress = settings.wallet.bitcoin.addressIndex;
   const iChange = iAddress + 1;
   const iTo = 100;
@@ -26,14 +25,15 @@ async function main() {
     `UTXO(s) on wallet ${iTo} (arbitrary destination wallet):`,
     await btcWallet.utxos(iTo),
   );
-  //
+
   // // Send transaction
   // const [to, change] = await Promise.all([
   //   btcWallet.address(iTo),
   //   btcWallet.address(iChange),
   // ]);
-  // const amount = "0.001";
+  // const amount = "0.0007";
   // const txId = await btcWallet.send(amount, to, iAddress, change);
+  // settings.wallet.bitcoin.addressIndex++;
   // console.log(`Sent ${amount} BTC to ${to}: ${txId}`);
 }
 
