@@ -1,19 +1,20 @@
 import "dotenv/config";
 
-import { BitcoinWallet, loadSettings } from "@wallet";
-import { decryptFromFile } from "@utils/fs";
+import { BitcoinWallet, WalletSettings } from "@wallet";
 const RECOVERY_PHRASE_PATH =
-  process.env.RECOVERY_PHRASE_PATH ?? "/data/wallet._phrase.json";
+  process.env.RECOVERY_PHRASE_PATH ?? "./.data/wallet._phrase.json";
 const WALLET_DATA_PATH =
-  process.env.WALLET_DATA_PATH ?? "/data/wallet._accounts.json";
+  process.env.WALLET_DATA_PATH ?? "./.data/wallet._accounts.json";
 
 async function main() {
-  // await encryptToFile("password", mnemonic, WALLET_DATA_PATH);
-  const mnemonic = await decryptFromFile("password", RECOVERY_PHRASE_PATH);
-  const settings = await loadSettings(WALLET_DATA_PATH);
+  const settings = await WalletSettings.load({
+    mnemonicPath: RECOVERY_PHRASE_PATH,
+    walletStatePath: WALLET_DATA_PATH,
+    password: "password",
+  });
 
-  const btcWallet = new BitcoinWallet(mnemonic);
-  const iAddress = settings.bitcoin.addressIndex;
+  const btcWallet = new BitcoinWallet(settings.mnemonic);
+  const iAddress = settings.wallet.bitcoin.addressIndex;
   const iChange = iAddress + 1;
   const iTo = 100;
 
