@@ -1,34 +1,32 @@
 import "dotenv/config";
-// import { formatUnits } from "ethers";
 
-import { RippleWallet } from "@wallet";
-// import { Erc20ContractAddresses } from "./contract";
+import { BitcoinWallet, loadSettings } from "@wallet";
+import { decryptFromFile } from "@utils/fs";
+const RECOVERY_PHRASE_PATH =
+  process.env.RECOVERY_PHRASE_PATH ?? "/data/wallet._phrase.json";
+const WALLET_DATA_PATH =
+  process.env.WALLET_DATA_PATH ?? "/data/wallet._accounts.json";
 
 async function main() {
-  const mnemonic = process.env.MNEMONIC;
-  if (!mnemonic) {
-    throw new Error("MNEMONIC is required");
-  }
-  const wallet = new RippleWallet(mnemonic);
-  console.log("Address:", await wallet.address());
-  console.log("Balance:", await wallet.balance());
-  console.log("Address 2:", await wallet.address(1));
-  console.log("Balance 2:", await wallet.balance(1));
-  // const res = await wallet.send("20", await wallet.address(1))
-  // console.log("Sent XRP:", res);
-  await wallet.disconnect();
-  // const btcWallet = new BitcoinWallet(mnemonic);
-  //
-  // const iAddress = 0;
-  // const iChange = iAddress + 1;
-  // const iTo = 100;
-  //
-  // console.log(
-  //   `UTXO(s) on wallet ${iAddress}:`,
-  //   await btcWallet.utxos(iAddress),
-  // );
+  // await encryptToFile("password", mnemonic, WALLET_DATA_PATH);
+  const mnemonic = await decryptFromFile("password", RECOVERY_PHRASE_PATH);
+  const settings = await loadSettings(WALLET_DATA_PATH);
 
-  // Send transaction
+  const btcWallet = new BitcoinWallet(mnemonic);
+  const iAddress = settings.bitcoin.addressIndex;
+  const iChange = iAddress + 1;
+  const iTo = 100;
+
+  console.log(
+    `UTXO(s) on wallet ${iAddress}:`,
+    await btcWallet.utxos(iAddress),
+  );
+  console.log(
+    `UTXO(s) on wallet ${iTo} (arbitrary destination wallet):`,
+    await btcWallet.utxos(iTo),
+  );
+  //
+  // // Send transaction
   // const [to, change] = await Promise.all([
   //   btcWallet.address(iTo),
   //   btcWallet.address(iChange),
