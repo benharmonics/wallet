@@ -1,31 +1,45 @@
 import { AppConfiguration } from "./config";
-import { BitcoinWallet, WalletSettings } from "@wallet";
+import { Wallet } from "@wallet";
 
-async function main() {
+async function run(): Promise<Wallet> {
   const { mnemonicPath, walletDataPath, mainnet } = new AppConfiguration();
-  const settings = await WalletSettings.load({
+  const wallet = await Wallet.new({
     mnemonicPath,
     walletDataPath,
+    mainnet,
     password: "password",
   });
+  const protocols = ["ethereum", "ripple", "bitcoin"] as const;
+  protocols.forEach(async (protocol) => {
+    const balance = await wallet.balance({ protocol });
+    const address = await wallet.address({ protocol });
+    console.log(
+      `Protocol: ${protocol}, Address: ${address}, Balance: ${balance}`,
+    );
+  });
+  return wallet;
+}
 
-  const btcWallet = new BitcoinWallet(
-    settings.mnemonic,
-    mainnet ? "mainnet" : "testnet",
-  );
-  const iAddress = settings.wallet.bitcoin.addressIndex;
-  const iChange = iAddress + 1;
-  const iTo = 100;
-
-  console.log(
-    `UTXO(s) on wallet ${iAddress}:`,
-    await btcWallet.utxos(iAddress),
-  );
-  console.log(
-    `UTXO(s) on wallet ${iTo} (arbitrary destination wallet):`,
-    await btcWallet.utxos(iTo),
-  );
-
+function main() {
+  run().then(w => w.disconnect()).catch(console.error);
+  // // ------------------ BTC tests ------------------
+  // const btcWallet = new BitcoinWallet(
+  //   settings.mnemonic,
+  //   mainnet ? "mainnet" : "testnet",
+  // );
+  // const iAddress = settings.wallet.bitcoin.addressIndex;
+  // const iChange = iAddress + 1;
+  // const iTo = 100;
+  //
+  // console.log(
+  //   `UTXO(s) on wallet ${iAddress}:`,
+  //   await btcWallet.utxos(iAddress),
+  // );
+  // console.log(
+  //   `UTXO(s) on wallet ${iTo} (arbitrary destination wallet):`,
+  //   await btcWallet.utxos(iTo),
+  // );
+  //
   // // Send transaction
   // const [to, change] = await Promise.all([
   //   btcWallet.address(iTo),
@@ -37,4 +51,4 @@ async function main() {
   // console.log(`Sent ${amount} BTC to ${to}: ${txId}`);
 }
 
-main().catch(console.error);
+main();
