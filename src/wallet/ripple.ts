@@ -38,6 +38,9 @@ export class RippleWallet {
     return this.wallet(addressIndex).address;
   }
 
+  /**
+   * Balance in XRP
+   */
   async balance(addressIndex: number = 0): Promise<number> {
     await this.connect();
     const wallet = this.wallet(addressIndex);
