@@ -7,55 +7,75 @@ import {
   TransactionResponse,
   Wallet as EWallet,
 } from "ethers";
-import { providerRpcEndpoint, Protocol } from "../provider";
+import { providerRpcEndpoint } from "../provider";
 import bip44, { Bip44Coin } from "../bip44";
 import erc20 from "../../abi/erc20.json";
 
+// ERC-20 contract addresses
+const erc20Contracts: Record<string, string> = {
+  USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  UNI: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+};
+
 export type EthereumNetwork = "mainnet" | "sepolia" | "holesky" | "hoodi";
 
-export type Erc20Balance = { balance: bigint; decimals: number };
+export type Balance = { balance: bigint; decimals: number };
+export type BalanceOptions = { symbol?: string, addressIndex?: number };
+
+export type SendOptions = {
+  amount: string,
+  to: string,
+  addressIndex?: number,
+  symbol?: string,
+}
 
 export class EthereumWallet {
   private readonly mnemonic: string;
   private readonly provider: Provider;
-  private readonly protocol: Protocol = "ethereum";
 
   constructor(mnemonic: string, network: EthereumNetwork = "sepolia") {
-    const rpcEndpoint = providerRpcEndpoint(this.protocol, network);
+    const rpcEndpoint = providerRpcEndpoint("ethereum", network);
     this.provider = getDefaultProvider(rpcEndpoint);
     this.mnemonic = mnemonic;
+  }
+
+  static get erc20Tokens(): string[] {
+    return Object.keys(erc20Contracts);
   }
 
   async address(addressIndex: number = 0): Promise<string> {
     return this.wallet(addressIndex).getAddress();
   }
 
-  /**
-   * Balance in Wei.
-   */
-  async balance(addressIndex: number = 0): Promise<bigint> {
-    return this.provider.getBalance(await this.address(addressIndex));
+  async balance(opts: BalanceOptions): Promise<Balance> {
+    if (opts.symbol && opts.symbol.toUpperCase() !== "ETH") {
+      return this.balanceErc20(opts);
+    }
+    const address = await this.address(opts.addressIndex ?? 0);
+    const wei = await this.provider.getBalance(address);
+    return { balance: wei, decimals: 18 };
   }
 
-  async send(
-    amountEth: string,
-    to: string,
-    addressIndex: number = 0,
-  ): Promise<TransactionResponse> {
+  async send(opts: SendOptions): Promise<TransactionResponse> {
+    if (opts.symbol && opts.symbol.toUpperCase() !== "ETH") {
+      return this.sendErc20(opts);
+    }
     const fees = await maxFees(this.provider);
     const { maxPriorityFeePerGas, maxFeePerGas } = fees;
-    return this.wallet(addressIndex).sendTransaction({
-      to,
+    return this.wallet(opts.addressIndex ?? 0).sendTransaction({
+      to: opts.to,
       maxFeePerGas,
       maxPriorityFeePerGas,
-      value: parseEther(amountEth),
+      value: parseEther(opts.amount),
     });
   }
 
-  async balanceErc20(
-    contractAddress: string,
-    addressIndex: number = 0,
-  ): Promise<Erc20Balance> {
+  private async balanceErc20(opts: BalanceOptions): Promise<Balance> {
+    const {symbol, addressIndex} = opts;
+    const contractAddress = erc20Contracts[symbol!.toUpperCase()];
+    if (!contractAddress) {
+      throw new Error(`Unsupported asset ${symbol}`);
+    }
     const contract = new Contract(contractAddress, erc20, this.provider);
     const [balance, decimals] = await Promise.all([
       contract.balanceOf(await this.address(addressIndex)),
@@ -64,12 +84,12 @@ export class EthereumWallet {
     return { balance, decimals };
   }
 
-  async sendErc20(
-    contractAddress: string,
-    amount: string,
-    to: string,
-    addressIndex: number = 0,
-  ): Promise<TransactionResponse> {
+  private async sendErc20(opts: SendOptions): Promise<TransactionResponse> {
+    const {symbol, to, amount, addressIndex} = opts;
+    const contractAddress = erc20Contracts[symbol!.toUpperCase()];
+    if (!contractAddress) {
+      throw new Error(`Unsupported asset ${symbol}`);
+    }
     const contract = new Contract(contractAddress, erc20, this.provider);
     const [fees, decimals] = await Promise.all([
       maxFees(this.provider),
@@ -80,7 +100,7 @@ export class EthereumWallet {
       to,
       parseUnits(amount, decimals),
     ]);
-    return this.wallet(addressIndex).sendTransaction({
+    return this.wallet(addressIndex ?? 0).sendTransaction({
       to: contractAddress,
       maxFeePerGas,
       maxPriorityFeePerGas,
@@ -91,7 +111,7 @@ export class EthereumWallet {
 
   private wallet(addressIndex: number): EWallet {
     const b44 = bip44(this.mnemonic, {
-      coin: this.bip44Coin(),
+      coin: Bip44Coin.ethereum,
       addressIndex,
     });
     if (!b44.privateKey) {
@@ -101,17 +121,6 @@ export class EthereumWallet {
       .map((byte) => byte.toString(16).padStart(2, "0"))
       .join("");
     return new EWallet(sk, this.provider);
-  }
-
-  private bip44Coin(): Bip44Coin {
-    switch (this.protocol) {
-      case "ethereum":
-        return Bip44Coin.ethereum;
-      default:
-        throw new Error(
-          `Unsupported protocol ${this.protocol} - unkown BIP44 coin`,
-        );
-    }
   }
 }
 

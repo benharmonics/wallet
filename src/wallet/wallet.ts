@@ -186,8 +186,8 @@ export class Wallet {
         return satsToBtc(balSats);
       case "ethereum":
         if (!opts.asset || opts.asset.toUpperCase() === "ETH") {
-          const balWei = await this.ethereum.balance(opts.addressIndex);
-          return formatEther(balWei);
+          const balWei = await this.ethereum.balance(opts);
+          return formatEther(balWei.balance);
         }
         throw new Error("Non-native token balances unimplemented for Ethereum");
       case "ripple":
@@ -242,11 +242,11 @@ export class Wallet {
         };
       case "ethereum":
         if (!opts.asset || opts.asset.toUpperCase() === "ETH") {
-          const res = await this.ethereum.send(
-            opts.amount,
-            opts.destination,
-            opts.addressIndex,
-          );
+          const res = await this.ethereum.send({
+            amount: opts.amount,
+            to: opts.destination,
+            addressIndex: opts.addressIndex,
+          });
           return {
             txHash: res.hash,
             origin: await this.ethereum.address(opts.addressIndex),
