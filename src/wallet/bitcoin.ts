@@ -44,7 +44,10 @@ function feeForTx(
  * Dust threshold per Bitcoin Core heuristic: 3 * inputVBytes * feeRate.
  * (Change below this should be added to the fee instead of creating an output.)
  */
-function dustThreshold(feeRate: number, inputVBytes: number = P2WPKH_WEIGHTS.inputVBytes): bigint {
+function dustThreshold(
+  feeRate: number,
+  inputVBytes: number = P2WPKH_WEIGHTS.inputVBytes,
+): bigint {
   const sats = Math.ceil(3 * inputVBytes * feeRate);
   return BigInt(sats);
 }
@@ -100,7 +103,11 @@ export class BitcoinWallet {
     return address;
   }
 
-  async send(amountBtc: string, to: string, addressIndex: number): Promise<string> {
+  async send(
+    amountBtc: string,
+    to: string,
+    addressIndex: number,
+  ): Promise<string> {
     const [b32, utxos, feeRate, changeAddress] = await Promise.all([
       this.bip32(addressIndex),
       this.utxos(addressIndex),
@@ -120,21 +127,30 @@ export class BitcoinWallet {
     const outputs = [{ address: to, value: Number(amount) }];
 
     // Fee & change outputs
-    let fee = feeForTx(_feeRate, utxos.confirmedUtxos.length, 1)
+    let fee = feeForTx(_feeRate, utxos.confirmedUtxos.length, 1);
     const changeOneOutput = balance - amount - fee;
     if (changeOneOutput < 0) {
-      throw new Error(`Insufficient balance: have ${balance}, need ${amount + fee}`);
+      throw new Error(
+        `Insufficient balance: have ${balance}, need ${amount + fee}`,
+      );
     } else if (changeOneOutput > dust) {
       fee = feeForTx(_feeRate, utxos.confirmedUtxos.length, 2);
       const changeTwoOutputs = balance - amount - fee;
       if (changeTwoOutputs > dust) {
         console.log(`Sending change ${changeTwoOutputs} to ${changeAddress}`);
-        outputs.push({ address: changeAddress, value: Number(changeTwoOutputs) });
+        outputs.push({
+          address: changeAddress,
+          value: Number(changeTwoOutputs),
+        });
       } else {
-        console.warn(`Tried to return change to ${changeAddress}, but change would have been below dust threshold of ${dust} when accounting for fees - folding into fee instead`);
+        console.warn(
+          `Tried to return change to ${changeAddress}, but change would have been below dust threshold of ${dust} when accounting for fees - folding into fee instead`,
+        );
       }
     } else {
-      console.warn(`Change ${changeOneOutput} below dust threshold of ${dust} - folding into fee instead of returning to ${changeAddress}`);
+      console.warn(
+        `Change ${changeOneOutput} below dust threshold of ${dust} - folding into fee instead of returning to ${changeAddress}`,
+      );
     }
 
     const toInput = (utxo: EsploraUtxo) => ({
@@ -155,7 +171,9 @@ export class BitcoinWallet {
     }
 
     const txHex = psbt.finalizeAllInputs().extractTransaction().toHex();
-    console.log(`Bitcoin transaction: sending ${amount} from ${utxos.address} to ${to}`);
+    console.log(
+      `Bitcoin transaction: sending ${amount} from ${utxos.address} to ${to}`,
+    );
     console.log("Transacton hex:", txHex);
 
     return broadcastTx(txHex, { mainnet: this.mainnet });

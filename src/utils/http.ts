@@ -156,9 +156,7 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function isJsonRpc(
-  x: any,
-): x is {
+function isJsonRpc(x: any): x is {
   jsonrpc: "2.0";
   result?: unknown;
   error?: { code: number; message: string; data?: unknown };

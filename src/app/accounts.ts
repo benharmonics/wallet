@@ -58,7 +58,7 @@ export function bindWalletEvents() {
         </div>
       `);
     }
-    showModal()
+    showModal();
     const modal = document.getElementById("modal-content");
     modal!.innerHTML = `
       <h2 class="text-2xl font-semibold pb-5">Save new wallet</h2>
@@ -91,7 +91,7 @@ export function bindWalletEvents() {
   };
 
   document.getElementById("unlock")!.onclick = async () => {
-    showModal()
+    showModal();
     const modal = document.getElementById("modal-content");
     modal!.innerHTML = `
       <h2 class="text-2xl font-semibold pb-5">Enter your password to unlock your wallet</h2>
@@ -116,16 +116,16 @@ export function bindWalletEvents() {
   document.getElementById("increment-address-index")!.onclick = async () => {
     state.addressIndex++;
     await setAddressIndex(state.addressIndex);
-  }
+  };
 
   document.getElementById("decrement-address-index")!.onclick = async () => {
     if (state.addressIndex <= 0) return;
     state.addressIndex--;
     await setAddressIndex(state.addressIndex);
-  }
+  };
 
   document.getElementById("send")!.onclick = async () => {
-    showModal()
+    showModal();
     const modal = document.getElementById("modal-content");
     modal!.innerHTML = `
       <h2 class="text-2xl font-semibold pb-5">Send Ethereum from your wallet</h2>
@@ -157,7 +157,7 @@ export function bindWalletEvents() {
       </form>
     `;
     bindSendFormEvents();
-  }
+  };
 
   showVaultStatusText();
 }
@@ -173,34 +173,34 @@ function bindSaveFormEvents() {
     const password = formData.get("password")!.toString();
     const words: string[] = [];
     for (let wordNum = 1; wordNum <= 12; wordNum++) {
-      words.push(formData.get(`word${wordNum}`)!.toString())
+      words.push(formData.get(`word${wordNum}`)!.toString());
     }
     const mnemonic = words.join(" ");
 
     await encryptVault(mnemonic, password);
     state.mnemonic = mnemonic;
-  })
+  });
 
   for (let wordNum = 1; wordNum <= 12; wordNum++) {
     const input = document.getElementById(`word${wordNum}`) as HTMLInputElement;
     const button = document.getElementById(`word${wordNum}-btn`);
-    button!.addEventListener("click", e => {
-      e.preventDefault()
+    button!.addEventListener("click", (e) => {
+      e.preventDefault();
       if (input.type === "text") {
         input.type = "password";
         button!.textContent = "Show";
       } else {
-        input.type = "text"
+        input.type = "text";
         button!.textContent = "Hide";
       }
-    })
+    });
   }
 
   document.getElementById("password-input")!.focus();
 
   document.getElementById("cancel-btn")!.addEventListener("click", (e) => {
     e.preventDefault();
-    hideModal()
+    hideModal();
   });
 }
 
@@ -228,31 +228,33 @@ function bindUnlockFormEvents() {
     } else {
       output!.textContent = "❌ Failed to unlock vault.";
     }
-  })
+  });
 
   document.getElementById("password-input")!.focus();
 
   document.getElementById("cancel-btn")!.addEventListener("click", (e) => {
-    e.preventDefault()
-    hideModal()
+    e.preventDefault();
+    hideModal();
   });
 }
 
 function bindSendFormEvents() {
   const output = document.getElementById("output");
   if (!state.mnemonic) {
-    console.error("Attempted to send funds with locked vault")
+    console.error("Attempted to send funds with locked vault");
     output!.textContent = "❌ Unable to send funds - please unlock your vault.";
     return;
   }
 
-  const wallet = new Wallet(state.mnemonic)
+  const wallet = new Wallet(state.mnemonic);
 
-  wallet.address(state.addressIndex).then(addr => {
-    document.getElementById("from")!.textContent = `${addr} (Account ${state.addressIndex})`;
+  wallet.address(state.addressIndex).then((addr) => {
+    document.getElementById("from")!.textContent =
+      `${addr} (Account ${state.addressIndex})`;
   });
 
-  document.getElementById("send-form-balance")!.textContent = document.getElementById("balance")!.textContent;
+  document.getElementById("send-form-balance")!.textContent =
+    document.getElementById("balance")!.textContent;
   document.getElementById("to")!.focus();
 
   const form = document.getElementById("send-form");
@@ -266,10 +268,10 @@ function bindSendFormEvents() {
     const to = formData.get("to");
     const errors: string[] = [];
     if (!amount) {
-      errors.push("amount is required")
+      errors.push("amount is required");
     }
     if (!to) {
-      errors.push("destination is required")
+      errors.push("destination is required");
     }
     if (errors.length > 0) {
       output!.textContent = `❌ ${errors.join(", ")}`;
@@ -278,19 +280,23 @@ function bindSendFormEvents() {
 
     output!.textContent = `⏳ Sending ${amount!.toString()} ETH to ${to!.toString()}...`;
     try {
-      const res = await wallet.send(amount!.toString(), to!.toString(), state.addressIndex);
+      const res = await wallet.send(
+        amount!.toString(),
+        to!.toString(),
+        state.addressIndex,
+      );
       output!.textContent =
         `✅ Sent ${amount!.toString()} ETH to ${to!.toString()}. ` +
         `Transaction Hash: ${res.hash}`;
-      repeat(getBalance, 3, 5000)
+      repeat(getBalance, 3, 5000);
     } catch (e) {
-      output!.textContent = `❌ Failed to send: ${e}`
+      output!.textContent = `❌ Failed to send: ${e}`;
     }
-  })
+  });
 
   document.getElementById("cancel-btn")!.addEventListener("click", (e) => {
-    e.preventDefault()
-    hideModal()
+    e.preventDefault();
+    hideModal();
   });
 }
 
@@ -310,14 +316,17 @@ async function getAddress(wallet?: Wallet) {
     return "Unavailable - please enter a mnemonic.";
   }
   wallet ??= new Wallet(state.mnemonic);
-  document.getElementById("address")!.textContent = await wallet.address(state.addressIndex);
+  document.getElementById("address")!.textContent = await wallet.address(
+    state.addressIndex,
+  );
 }
 
 async function setAddressIndex(addressIndex: number, wallet?: Wallet) {
   if (!state.mnemonic) {
     return "Unavailable - please enter a mnemonic.";
   }
-  document.getElementById("address-index")!.textContent = `Address ${addressIndex}:`;
+  document.getElementById("address-index")!.textContent =
+    `Address ${addressIndex}:`;
   getBalance(wallet);
   getAddress(wallet);
 }
@@ -331,14 +340,16 @@ function showVaultStatusText() {
   }
 }
 
-function focusElementOnEnter(form: HTMLElement | null, elementId: string = "submit-btn") {
+function focusElementOnEnter(
+  form: HTMLElement | null,
+  elementId: string = "submit-btn",
+) {
   form!.addEventListener("keypress", (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       // TODO: submit on enter
       const element = document.getElementById(elementId);
       element!.focus();
     }
-  })
+  });
 }
-
