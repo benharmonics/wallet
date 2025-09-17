@@ -1,6 +1,7 @@
 import express from "express";
 import * as z from "zod";
 import {
+  Wallet,
   WalletAddressOptions,
   WalletBalanceOptions,
   WalletManager,
@@ -29,6 +30,30 @@ app.post("/auth", async (req, res) => {
     .catch((e) => res.status(401).send(e));
 });
 
+const WalletRequestBody = z.object({
+  password: z.string().nonoptional(),
+  mnemonic: z.string().nonoptional(),
+});
+
+app.post("/wallet", async (req, res) => {
+  let data;
+  try {
+    data = WalletRequestBody.parse(req.body);
+  } catch (e) {
+    res.status(400).send(e);
+    return;
+  }
+  const { mnemonicPath, walletDataPath, mainnet } =
+    WalletManager.appConfiguration;
+  const wallet = Wallet.saveNew(data.mnemonic, {
+    mnemonicPath,
+    walletDataPath,
+    mainnet,
+    password: data.password,
+  });
+  res.json(wallet);
+});
+
 const AddressRequestQuery = z.object({
   addressIndex: z.coerce.number().int().positive().optional(),
 });
@@ -46,11 +71,15 @@ function walletAddressOptions(
   }
 }
 
-app.get("/address/:protocol", async (req, res) => {
-  if (!WalletManager.wallet) {
+app.use("/address/:protocol", (_, res, next) => {
+  if (!WalletManager.isAuthenticated) {
     res.status(401).send("Unauthorized");
     return;
   }
+  next();
+});
+
+app.get("/address/:protocol", async (req, res) => {
   let protocol;
   try {
     protocol = ZProtocol.parse(req.params.protocol);
@@ -59,8 +88,7 @@ app.get("/address/:protocol", async (req, res) => {
     return;
   }
   const opts = walletAddressOptions(protocol, req.query);
-  await WalletManager.wallet
-    .address(opts)
+  await WalletManager.wallet!.address(opts)
     .then((a) => res.send(a))
     .catch((e) => res.status(500).send(`Failed to get address: ${e}`));
 });
@@ -83,11 +111,15 @@ function walletBalanceOptions(
   }
 }
 
-app.get("/balance/:protocol", async (req, res) => {
-  if (!WalletManager.wallet) {
+app.use("/balance/:protocol", (_, res, next) => {
+  if (!WalletManager.isAuthenticated) {
     res.status(401).send("Unauthorized");
     return;
   }
+  next();
+});
+
+app.get("/balance/:protocol", async (req, res) => {
   let protocol;
   try {
     protocol = ZProtocol.parse(req.params.protocol);
@@ -96,8 +128,7 @@ app.get("/balance/:protocol", async (req, res) => {
     return;
   }
   const opts = walletBalanceOptions(protocol, req.query);
-  await WalletManager.wallet
-    .balance(opts)
+  await WalletManager.wallet!.balance(opts)
     .then((b) => res.send(b))
     .catch((e) => res.status(500).send(`Failed to get balance: ${e}`));
 });
@@ -114,11 +145,15 @@ const SendRequestBody = z.object({
   asset: z.string().optional(),
 });
 
-app.post("/send", async (req, res) => {
-  if (!WalletManager.wallet) {
+app.use("/send", (_, res, next) => {
+  if (!WalletManager.isAuthenticated) {
     res.status(401).send("Unauthorized");
     return;
   }
+  next();
+});
+
+app.post("/send", async (req, res) => {
   let data;
   try {
     data = SendRequestBody.parse(req.body);
@@ -126,8 +161,7 @@ app.post("/send", async (req, res) => {
     res.status(400).send(e);
     return;
   }
-  await WalletManager.wallet
-    .send(data)
+  await WalletManager.wallet!.send(data)
     .then((ret) => res.json(ret))
     .catch((e) => res.status(500).send(`Failed to send transaction: ${e}`));
 });

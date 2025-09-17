@@ -206,7 +206,7 @@ let wallet: Wallet | null = null;
 let lastAuth: Date | null = null;
 
 export class WalletManager {
-  private static appConfiguration = new AppConfiguration();
+  static readonly appConfiguration = new AppConfiguration();
   private static logoutTimeout = 30 * 60 * 1000; // 30 minutes
   private static active = false;
 
@@ -237,6 +237,10 @@ export class WalletManager {
 
   static get lastAuth(): Date | null {
     return lastAuth;
+  }
+
+  static get isAuthenticated(): boolean {
+    return wallet !== null;
   }
 
   static async auth(password: string) {
