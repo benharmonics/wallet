@@ -1,0 +1,9 @@
+import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
+
+export default defineConfig({
+  root: ".", // root is the current folder with index.html
+  plugins: [
+    tailwindcss(),
+  ],
+});
