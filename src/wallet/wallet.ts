@@ -11,7 +11,6 @@ export type BitcoinAddressOptions = { protocol: "bitcoin" };
 export type GenericAddressOptions = {
   protocol: "ethereum" | "ripple" | "stellar";
   addressIndex?: number;
-  asset?: string;
 };
 export type WalletAddressOptions =
   | BitcoinAddressOptions
@@ -230,7 +229,7 @@ export class WalletManager {
     return lastAuth;
   }
 
-  static async auth(password: string = "password") {
+  static async auth(password: string) {
     WalletManager.authCheckSetInterval();
     const { mnemonicPath, walletDataPath, mainnet } =
       WalletManager.appConfiguration;

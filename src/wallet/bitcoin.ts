@@ -186,3 +186,31 @@ export class BitcoinWallet {
     return broadcastTx(txHex, { mainnet: this.mainnet });
   }
 }
+
+// // ------------------ BTC tests ------------------
+// const btcWallet = new BitcoinWallet(
+//   settings.mnemonic,
+//   mainnet ? "mainnet" : "testnet",
+// );
+// const iAddress = settings.wallet.bitcoin.addressIndex;
+// const iChange = iAddress + 1;
+// const iTo = 100;
+//
+// console.log(
+//   `UTXO(s) on wallet ${iAddress}:`,
+//   await btcWallet.utxos(iAddress),
+// );
+// console.log(
+//   `UTXO(s) on wallet ${iTo} (arbitrary destination wallet):`,
+//   await btcWallet.utxos(iTo),
+// );
+//
+// // Send transaction
+// const [to, change] = await Promise.all([
+//   btcWallet.address(iTo),
+//   btcWallet.address(iChange),
+// ]);
+// const amount = "0.0007";
+// const txId = await btcWallet.send(amount, to, iAddress, change);
+// settings.wallet.bitcoin.addressIndex++;
+// console.log(`Sent ${amount} BTC to ${to}: ${txId}`);
