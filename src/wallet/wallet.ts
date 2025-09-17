@@ -125,8 +125,10 @@ export class Wallet {
     switch (action) {
       case "add":
         addTrackedAddress(accounts);
+        break;
       case "remove":
         removeTrackedAddress(accounts);
+        break;
     }
     return this.settings
       .save()
