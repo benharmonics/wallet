@@ -1,8 +1,6 @@
-import { Networkish } from "ethers";
+export type Protocol = "ethereum" | "bitcoin";
 
-export type Protocol = "ethereum";
-
-export function providerRpcEndpoint(protocol: Protocol, network: Networkish) {
+export function providerRpcEndpoint(protocol: Protocol, network: string) {
   switch (protocol) {
     case "ethereum":
       switch (network) {
@@ -14,6 +12,13 @@ export function providerRpcEndpoint(protocol: Protocol, network: Networkish) {
           return "https://ethereum-holesky-rpc.publicnode.com";
         default:
           throw new Error(`Unsupported Ethereum network ${network}`);
+      }
+    case "bitcoin":
+      switch (network) {
+        case "mainnet":
+          return "https://bitcoin-rpc.publicnode.com";
+        case "testnet":
+          return "https://bitcoin-testnet-rpc.publicnode.com";
       }
     default:
       throw new Error(`Unsupported protocol ${protocol}`);
