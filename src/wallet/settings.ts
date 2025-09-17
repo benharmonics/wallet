@@ -11,12 +11,14 @@ export type WalletState = {
   bitcoin: { addressIndex: number; rotateAddress: boolean };
   ethereum: { accounts: number[] };
   ripple: { accounts: number[] };
+  stellar: { accounts: number[] };
 };
 
 const DEFAULT_WALLET_SETTINGS: WalletState = {
   bitcoin: { addressIndex: 0, rotateAddress: true },
   ethereum: { accounts: [0] },
   ripple: { accounts: [0] },
+  stellar: { accounts: [] },
 };
 
 export type WalletSettingsLoadOptions = {

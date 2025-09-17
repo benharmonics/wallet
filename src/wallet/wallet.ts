@@ -5,6 +5,7 @@ import { RippleWallet } from "./ripple";
 import { formatEther } from "ethers";
 import { satsToBtc } from "@utils/blockchain";
 import { StellarWallet } from "./stellar";
+import { AppConfiguration } from "../config";
 
 export type BitcoinAddressOptions = { protocol: "bitcoin" };
 export type GenericAddressOptions = {
@@ -125,9 +126,12 @@ export class Wallet {
         }
         throw new Error("Non-native token balances unimplemented for Ripple");
       case "stellar":
-        const acc = await this.stellar.account(opts.addressIndex);
-        const native = acc.balances.find(b => b.asset_type === "native")!;
-        return native.balance;
+        if (!opts.asset || ["NATIVE", "XLM"].includes(opts.asset.toUpperCase())) {
+          const acc = await this.stellar.account(opts.addressIndex);
+          const native = acc.balances.find(b => b.asset_type === "native")!;
+          return native.balance;
+        }
+        throw new Error("Non-native token balances unimplemented for Stellar");
     }
   }
 
@@ -184,3 +188,48 @@ export class Wallet {
     }
   }
 }
+
+let wallet: Wallet | null = null;
+let lastAuth: Date | null = null;
+
+export class WalletManager {
+  private static appConfiguration = new AppConfiguration();
+  private static logoutTimeout = 30 * 60 * 1000; // 30 minutes
+  private static active = false;
+
+  // Delete static Wallet intermittently
+  private static authCheckSetInterval() {
+    if (WalletManager.active) return;
+    WalletManager.active = true;
+    setInterval(() => {
+      const authTimedOut = !WalletManager.lastAuth || new Date().getTime() - WalletManager.lastAuth.getTime() > WalletManager.logoutTimeout;
+      const isAuthenticated = wallet !== null;
+      if (authTimedOut && isAuthenticated) {
+        console.log("Logging out - last auth:", WalletManager.lastAuth?.toLocaleString());
+        wallet?.disconnect();
+        wallet = null;
+      }
+    }, 10 * 1000);
+  }
+
+  static get wallet(): Wallet | null {
+    return wallet;
+  };
+
+  static get lastAuth(): Date | null {
+    return lastAuth;
+  }
+
+  static async auth(password: string = "password") {
+    WalletManager.authCheckSetInterval();
+    const { mnemonicPath, walletDataPath, mainnet } = WalletManager.appConfiguration;
+    wallet = await Wallet.new({
+      mnemonicPath,
+      walletDataPath,
+      mainnet,
+      password,
+    });
+    lastAuth = new Date();
+  }
+}
+
