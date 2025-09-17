@@ -1,0 +1,13 @@
+name: wallet
+
+services:
+  backend:
+    image: wallet:latest
+    environment:
+      CONFIG_DIR: /data
+    ports:
+      - 8989:8989
+    volumes:
+      - wallet:/data
+volumes:
+  wallet:
