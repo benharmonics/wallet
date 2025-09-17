@@ -10,7 +10,7 @@ async function main() {
     throw new Error("MNEMONIC is required");
   }
   const btcWallet = new BitcoinWallet(mnemonic);
-  console.log(await btcWallet.utxos());
+  console.log(await btcWallet.utxos(0));
 }
 
 main().catch(console.error);
