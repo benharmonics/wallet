@@ -91,6 +91,31 @@ app.get("/wallet", async (req, res) => {
   respond(req, res, StatusCodes.OK, WalletManager.wallet!.accounts);
 });
 
+const WalletPutRequestBody = z.object({
+  action: z.enum(["add", "remove"]).nonoptional(),
+  protocol: ZProtocol.nonoptional(),
+  addressIndex: z.number().int().gte(0).nonoptional(),
+});
+
+app.put("/wallet", async (req, res) => {
+  let data;
+  try {
+    data = WalletPutRequestBody.parse(req.body);
+  } catch (e) {
+    respond(req, res, StatusCodes.BAD_REQUEST, null, e);
+    return;
+  }
+  await WalletManager.wallet!.updateAccount(
+    data.action,
+    data.protocol,
+    data.addressIndex,
+  )
+    .then(() => respond(req, res, StatusCodes.ACCEPTED, null))
+    .catch((e) =>
+      respond(req, res, StatusCodes.INTERNAL_SERVER_ERROR, null, e),
+    );
+});
+
 const AddressRequestQuery = z.object({
   addressIndex: z.coerce.number().int().gte(0).optional(),
 });
@@ -113,7 +138,13 @@ app.get("/wallet/address/:protocol", async (req, res) => {
   try {
     protocol = ZProtocol.parse(req.params.protocol);
   } catch (_) {
-    respond(req, res, StatusCodes.BAD_REQUEST, null, `expected protocol to be one of ${Protocols}`);
+    respond(
+      req,
+      res,
+      StatusCodes.BAD_REQUEST,
+      null,
+      `expected protocol to be one of ${Protocols}`,
+    );
     return;
   }
   const opts = walletAddressOptions(protocol, req.query);
@@ -153,7 +184,13 @@ app.get("/wallet/balance/:protocol", async (req, res) => {
   try {
     protocol = ZProtocol.parse(req.params.protocol);
   } catch (e) {
-    respond(req, res, StatusCodes.BAD_REQUEST, null, `expected protocol to be one of ${Protocols}`);
+    respond(
+      req,
+      res,
+      StatusCodes.BAD_REQUEST,
+      null,
+      `expected protocol to be one of ${Protocols}`,
+    );
     return;
   }
   const opts = walletBalanceOptions(protocol, req.query);

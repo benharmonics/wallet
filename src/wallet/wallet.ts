@@ -86,7 +86,7 @@ export class Wallet {
     return this.settings.accounts;
   }
 
-  updateAccount(
+  async updateAccount(
     action: "add" | "remove",
     protocol: Protocol,
     addressIndex: number,
@@ -128,7 +128,7 @@ export class Wallet {
       case "remove":
         removeTrackedAddress(accounts);
     }
-    this.settings
+    return this.settings
       .save()
       .then(() => console.log("Saved settings"))
       .catch((e) => console.log(`Failed to save settings: ${e}`));
