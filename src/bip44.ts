@@ -8,6 +8,7 @@ export enum Bip44Coin {
   bitcoin = "0'",
   ethereum = "60'",
   ripple = "144'",
+  solana = "501'",
 }
 
 export enum Bip44Change {

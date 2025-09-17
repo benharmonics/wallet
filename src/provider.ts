@@ -1,4 +1,4 @@
-export type Protocol = "ethereum" | "bitcoin" | "ripple";
+export type Protocol = "ethereum" | "bitcoin" | "ripple" | "solana";
 
 export function providerRpcEndpoint(protocol: Protocol, network: string) {
   switch (protocol) {
