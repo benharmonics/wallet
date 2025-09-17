@@ -42,12 +42,12 @@ export type GenericSendOptions = {
 export type WalletSendOptions = BitcoinSendOptions | GenericSendOptions;
 
 export type TransactionResponse = {
-  amount: string,
-  asset: string,
-  protocol: string,
-  origin: string,
-  destination: string,
-  txHash: string,
+  amount: string;
+  asset: string;
+  protocol: string;
+  origin: string;
+  destination: string;
+  txHash: string;
 };
 
 export type WalletSaveDataOptions = {
@@ -86,7 +86,11 @@ export class Wallet {
     return this.settings.accounts;
   }
 
-  updateAccount(action: "add" | "remove", protocol: Protocol, addressIndex: number) {
+  updateAccount(
+    action: "add" | "remove",
+    protocol: Protocol,
+    addressIndex: number,
+  ) {
     function removeTrackedAddress(accounts: number[]) {
       const i = accounts.indexOf(addressIndex);
       if (i !== -1) accounts.splice(i, 1);
@@ -103,7 +107,9 @@ export class Wallet {
     let accounts: number[];
     switch (protocol) {
       case "bitcoin":
-        throw new Error("Bitcoin doesn't really have addresses in the same sense as some others - enable address rotation to send change to a new address on each transaction")
+        throw new Error(
+          "Bitcoin doesn't really have addresses in the same sense as some others - enable address rotation to send change to a new address on each transaction",
+        );
       case "ripple":
         accounts = this.settings.accounts.ripple.accounts;
         break;
@@ -118,11 +124,14 @@ export class Wallet {
     }
     switch (action) {
       case "add":
-        addTrackedAddress(accounts)
+        addTrackedAddress(accounts);
       case "remove":
         removeTrackedAddress(accounts);
     }
-    this.settings.save().then(() => console.log("Saved settings")).catch((e) => console.log(`Failed to save settings: ${e}`));
+    this.settings
+      .save()
+      .then(() => console.log("Saved settings"))
+      .catch((e) => console.log(`Failed to save settings: ${e}`));
   }
 
   static async saveNew(
