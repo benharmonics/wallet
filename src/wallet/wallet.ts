@@ -1,9 +1,9 @@
+import { formatEther } from "ethers";
+import { satsToBtc } from "@utils/blockchain";
 import { EthereumWallet } from "./ethereum";
 import { BitcoinWallet } from "./bitcoin";
 import { WalletSettings } from "./settings";
 import { RippleWallet } from "./ripple";
-import { formatEther } from "ethers";
-import { satsToBtc } from "@utils/blockchain";
 import { StellarWallet } from "./stellar";
 import { AppConfiguration } from "../config";
 
@@ -40,7 +40,7 @@ export type GenericSendOptions = {
 };
 export type WalletSendOptions = BitcoinSendOptions | GenericSendOptions;
 
-export type NewWalletSettings = {
+export type WalletSaveDataOptions = {
   mnemonicPath: string;
   walletDataPath: string;
   password: string;
@@ -72,11 +72,21 @@ export class Wallet {
     this.stellar = new StellarWallet(settings.mnemonic, mainnet);
   }
 
-  public static async new(settings: NewWalletSettings): Promise<Wallet> {
-    const wallet = new Wallet(
-      await WalletSettings.load(settings),
-      settings.mainnet,
+  static async saveNew(
+    mnemonic: string,
+    opts: WalletSaveDataOptions,
+  ): Promise<Wallet> {
+    await WalletSettings.unsafeEncryptMnemonicFile(
+      opts.password,
+      mnemonic,
+      opts.mnemonicPath,
     );
+    return Wallet.loadFromDisk(opts);
+  }
+
+  static async loadFromDisk(opts: WalletSaveDataOptions): Promise<Wallet> {
+    const settings = await WalletSettings.load(opts);
+    const wallet = new Wallet(settings, opts.mainnet);
     await wallet.connect();
     return wallet;
   }
@@ -233,7 +243,7 @@ export class WalletManager {
     WalletManager.authCheckSetInterval();
     const { mnemonicPath, walletDataPath, mainnet } =
       WalletManager.appConfiguration;
-    wallet = await Wallet.new({
+    wallet = await Wallet.loadFromDisk({
       mnemonicPath,
       walletDataPath,
       mainnet,

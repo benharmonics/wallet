@@ -11,6 +11,8 @@ const app = express();
 
 app.use(express.json());
 
+const ZProtocol = z.enum(Protocols);
+
 const AuthRequestBody = z.object({ password: z.string() });
 
 app.post("/auth", async (req, res) => {
@@ -24,11 +26,11 @@ app.post("/auth", async (req, res) => {
   await WalletManager.auth(body.password)
     .then(() => console.log("Authenticated"))
     .then(() => res.send("OK"))
-    .catch(() => res.status(401).send("Unauthorized"));
+    .catch((e) => res.status(401).send(e));
 });
 
 const AddressRequestQuery = z.object({
-  addressIndex: z.coerce.number().positive().optional(),
+  addressIndex: z.coerce.number().int().positive().optional(),
 });
 
 function walletAddressOptions(
@@ -51,7 +53,7 @@ app.get("/address/:protocol", async (req, res) => {
   }
   let protocol;
   try {
-    protocol = z.enum(Protocols).parse(req.params.protocol);
+    protocol = ZProtocol.parse(req.params.protocol);
   } catch (e) {
     res.status(400).send(e);
     return;
@@ -64,7 +66,7 @@ app.get("/address/:protocol", async (req, res) => {
 });
 
 const BalanceRequestQuery = z.object({
-  addressIndex: z.coerce.number().positive().optional(),
+  addressIndex: z.coerce.number().int().positive().optional(),
   asset: z.string().optional(),
 });
 
@@ -88,7 +90,7 @@ app.get("/balance/:protocol", async (req, res) => {
   }
   let protocol;
   try {
-    protocol = z.enum(Protocols).parse(req.params.protocol);
+    protocol = ZProtocol.parse(req.params.protocol);
   } catch (e) {
     res.status(400).send(e);
     return;
@@ -101,13 +103,15 @@ app.get("/balance/:protocol", async (req, res) => {
 });
 
 const SendRequestBody = z.object({
-  protocol: z.enum(Protocols).nonoptional(),
+  protocol: ZProtocol.nonoptional(),
   destination: z.string().nonempty().nonoptional(),
   amount: z
     .number()
     .positive()
     .nonoptional()
     .transform((n) => n.toString()),
+  addressIndex: z.number().int().positive().optional(),
+  asset: z.string().optional(),
 });
 
 app.post("/send", async (req, res) => {
