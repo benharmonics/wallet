@@ -5,13 +5,16 @@ function getRandomBytes(length: number): Uint8Array {
   return crypto.getRandomValues(new Uint8Array(length));
 }
 
-export async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+export async function deriveKey(
+  password: string,
+  salt: Uint8Array,
+): Promise<CryptoKey> {
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
     encoder.encode(password),
     "PBKDF2",
     false,
-    ["deriveKey"]
+    ["deriveKey"],
   );
 
   return crypto.subtle.deriveKey(
@@ -24,11 +27,14 @@ export async function deriveKey(password: string, salt: Uint8Array): Promise<Cry
     keyMaterial,
     { name: "AES-GCM", length: 256 },
     false,
-    ["encrypt", "decrypt"]
+    ["encrypt", "decrypt"],
   );
 }
 
-export async function encryptVault(secret: string, password: string): Promise<void> {
+export async function encryptVault(
+  secret: string,
+  password: string,
+): Promise<void> {
   const salt = getRandomBytes(16);
   const iv = getRandomBytes(12);
   const key = await deriveKey(password, salt);
@@ -36,7 +42,7 @@ export async function encryptVault(secret: string, password: string): Promise<vo
   const encrypted = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
     key,
-    encoder.encode(secret)
+    encoder.encode(secret),
   );
 
   const payload = {
@@ -60,7 +66,7 @@ export async function decryptVault(password: string): Promise<string | null> {
     const decrypted = await crypto.subtle.decrypt(
       { name: "AES-GCM", iv: new Uint8Array(iv) },
       key,
-      new Uint8Array(ciphertext)
+      new Uint8Array(ciphertext),
     );
     return decoder.decode(decrypted);
   } catch (err) {
@@ -70,7 +76,7 @@ export async function decryptVault(password: string): Promise<string | null> {
 }
 
 export function hasVault(): boolean {
-  return Boolean(localStorage.getItem("vault"))
+  return Boolean(localStorage.getItem("vault"));
 }
 
 function loadVault(): {
