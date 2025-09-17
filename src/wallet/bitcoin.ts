@@ -67,7 +67,6 @@ export class BitcoinWallet {
   private readonly mnemonic: string;
   private readonly protocol: Protocol = "bitcoin";
   private readonly network: bitcoin.networks.Network;
-  private readonly rpcEndpoint: string;
 
   constructor(mnemonic: string, network: "testnet" | "mainnet" = "testnet") {
     this.mnemonic = mnemonic;
@@ -75,7 +74,6 @@ export class BitcoinWallet {
       network === "mainnet"
         ? bitcoin.networks.bitcoin
         : bitcoin.networks.testnet;
-    this.rpcEndpoint = providerRpcEndpoint(this.protocol, network);
   }
 
   private get mainnet(): boolean {

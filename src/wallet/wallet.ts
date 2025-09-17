@@ -1,4 +1,4 @@
-import { formatEther, formatUnits } from "ethers";
+import { formatUnits } from "ethers";
 import { satsToBtc } from "@utils/blockchain";
 import { EthereumWallet } from "./ethereum";
 import { BitcoinWallet } from "./bitcoin";
