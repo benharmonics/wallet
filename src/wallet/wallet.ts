@@ -242,9 +242,6 @@ export class WalletManager {
   }
 
   static async saveNew(mnemonic: string, password: string) {
-    if (!WalletManager.isAuthenticated) {
-      throw new Error("Unauthenticated");
-    }
     const { mnemonicPath, walletDataPath, mainnet } =
       WalletManager.appConfiguration;
     wallet = await Wallet.saveNew(mnemonic, {

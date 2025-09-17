@@ -60,6 +60,7 @@ app.post("/wallet", async (req, res) => {
     return;
   }
   await WalletManager.saveNew(data.mnemonic, data.password)
+    .then(() => console.log("Saved new wallet"))
     .then(() => respond(req, res, StatusCodes.CREATED, "Saved new wallet"))
     .catch((e) => respond(req, res, StatusCodes.INTERNAL_SERVER_ERROR, null, e));
 });
@@ -172,7 +173,10 @@ app.post("/send", async (req, res) => {
     return;
   }
   await WalletManager.wallet!.send(data)
-    .then((ret) => respond(req, res, StatusCodes.OK, ret))
+    .then((ret) => {
+      console.log(`Submitted transaction: ${JSON.stringify(ret, null, 2)}`);
+      respond(req, res, StatusCodes.OK, ret);
+    })
     .catch((e) => respond(req, res, StatusCodes.INTERNAL_SERVER_ERROR, null, e));
 });
 
