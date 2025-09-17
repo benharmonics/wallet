@@ -22,7 +22,7 @@ const DEFAULT_WALLET_SETTINGS: WalletState = {
 export type WalletSettingsLoadOptions = {
   password: string;
   mnemonicPath: string;
-  walletStatePath: string;
+  walletDataPath: string;
 };
 
 export class WalletSettings {
@@ -46,12 +46,12 @@ export class WalletSettings {
 
   static async load(opts: WalletSettingsLoadOptions): Promise<WalletSettings> {
     const [settings, mnemonic] = await Promise.all([
-      loadSettings(opts.walletStatePath),
+      loadSettings(opts.walletDataPath),
       decryptFromFile(opts.password, opts.mnemonicPath),
     ]);
     const config: ConfigPaths = {
       mnemonic: opts.mnemonicPath,
-      wallet: opts.walletStatePath,
+      wallet: opts.walletDataPath,
     };
     return new WalletSettings(settings, mnemonic, config);
   }
