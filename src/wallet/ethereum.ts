@@ -5,7 +5,7 @@ import {
   Contract,
   Provider,
   TransactionResponse,
-  Wallet as EWallet,
+  Wallet,
 } from "ethers";
 import { providerRpcEndpoint } from "../provider";
 import bip44, { Bip44Coin } from "../bip44";
@@ -14,7 +14,15 @@ import erc20 from "../../abi/erc20.json";
 // ERC-20 contract addresses
 const erc20Contracts: Record<string, string> = {
   USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  // USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
   UNI: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+  LINK: "0x514910771AF9Ca656af840dff83E8264EcF986CA",
+  RETH: "0xae78736Cd615f374D3085123A210448E74Fc6393", // rETH
+  // STETH: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84", // stETH
+  // BNB: "0xB8c77482e45F1F44dE1745F52C74426C631bDD52",
+  // WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  // WBTC: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+  // SHIB: "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE",
 };
 
 export type EthereumNetwork = "mainnet" | "sepolia" | "holesky" | "hoodi";
@@ -109,7 +117,7 @@ export class EthereumWallet {
     });
   }
 
-  private wallet(addressIndex: number): EWallet {
+  private wallet(addressIndex: number): Wallet {
     const b44 = bip44(this.mnemonic, {
       coin: Bip44Coin.ethereum,
       addressIndex,
@@ -120,7 +128,7 @@ export class EthereumWallet {
     const sk = [...b44.privateKey]
       .map((byte) => byte.toString(16).padStart(2, "0"))
       .join("");
-    return new EWallet(sk, this.provider);
+    return new Wallet(sk, this.provider);
   }
 }
 
