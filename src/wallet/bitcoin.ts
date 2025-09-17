@@ -11,7 +11,7 @@ import {
   feeEstimates,
 } from "./esplora";
 import { BIP32Interface } from "bip32";
-import { btcToSatoshis } from "@utils/blockchain";
+import { btcToSatoshis, satsToBtc } from "@utils/blockchain";
 
 const ECPair = ECPairFactory(ecc);
 
@@ -82,13 +82,13 @@ export class BitcoinWallet {
     return this.network === bitcoin.networks.bitcoin;
   }
 
+  private async bip32(addressIndex: number): Promise<BIP32Interface> {
+    return bip44(this.mnemonic, { coin: Bip44Coin.bitcoin, addressIndex });
+  }
+
   async utxos(addressIndex: number): Promise<AddressUtxoResult> {
     const address = await this.address(addressIndex);
     return addressUtxosAndBalance(address, { mainnet: this.mainnet });
-  }
-
-  private async bip32(addressIndex: number): Promise<BIP32Interface> {
-    return bip44(this.mnemonic, { coin: Bip44Coin.bitcoin, addressIndex });
   }
 
   async address(addressIndex: number): Promise<string> {
@@ -105,51 +105,57 @@ export class BitcoinWallet {
 
   async send(
     amountBtc: string,
-    to: string,
+    destination: string,
     addressIndex: number,
+    changeAddress?: string,
   ): Promise<string> {
-    const [b32, utxos, feeRate, changeAddress] = await Promise.all([
+    const [b32, utxos, feeRates] = await Promise.all([
       this.bip32(addressIndex),
       this.utxos(addressIndex),
       feeEstimates({ mainnet: this.mainnet }),
-      this.address(addressIndex + 1),
     ]);
     if (!b32.privateKey) {
       throw new Error("Failed to generate private key");
     }
-    const keypair = ECPair.fromPrivateKey(b32.privateKey);
+    console.log(
+      `Found ${utxos.utxos.length} UTXO(s) on ${utxos.address} (${utxos.confirmedUtxos.length} confirmed)`,
+    );
 
     const balance = BigInt(utxos.balances.confirmed);
     const amount = btcToSatoshis(amountBtc);
-    const _feeRate = feeRate.medium;
-    const dust = dustThreshold(_feeRate);
+    const feeRate = feeRates.medium;
+    const dust = dustThreshold(feeRate);
 
-    const outputs = [{ address: to, value: Number(amount) }];
+    const outputs = [{ address: destination, value: Number(amount) }];
 
     // Fee & change outputs
-    let fee = feeForTx(_feeRate, utxos.confirmedUtxos.length, 1);
+    let fee = feeForTx(feeRate, utxos.confirmedUtxos.length, 1);
     const changeOneOutput = balance - amount - fee;
     if (changeOneOutput < 0) {
       throw new Error(
-        `Insufficient balance: have ${balance}, need ${amount + fee}`,
+        `Insufficient balance: have ${balance} sats, need a minimum of ${amount + fee}`,
       );
     } else if (changeOneOutput > dust) {
-      fee = feeForTx(_feeRate, utxos.confirmedUtxos.length, 2);
+      fee = feeForTx(feeRate, utxos.confirmedUtxos.length, 2);
       const changeTwoOutputs = balance - amount - fee;
       if (changeTwoOutputs > dust) {
-        console.log(`Sending change ${changeTwoOutputs} to ${changeAddress}`);
+        changeAddress ??= utxos.address; // send back to origin if no change address provided
+        console.log(
+          `Bitcoin: sending change ${satsToBtc(Number(changeTwoOutputs))} BTC from ${utxos.address} to ${changeAddress}`,
+        );
         outputs.push({
           address: changeAddress,
           value: Number(changeTwoOutputs),
         });
       } else {
+        // Extremely rare edge case: adding change output renders it to dust, so we can't add it after all
         console.warn(
-          `Tried to return change to ${changeAddress}, but change would have been below dust threshold of ${dust} when accounting for fees - folding into fee instead`,
+          `Tried to return change to ${changeAddress}, but ${changeTwoOutputs} sats would have been below dust threshold of ${dust} when accounting for fees - folding into fee instead`,
         );
       }
     } else {
       console.warn(
-        `Change ${changeOneOutput} below dust threshold of ${dust} - folding into fee instead of returning to ${changeAddress}`,
+        `Change ${changeOneOutput} sats below dust threshold of ${dust} - folding into fee instead of returning to ${changeAddress}`,
       );
     }
 
@@ -165,14 +171,14 @@ export class BitcoinWallet {
     const psbt = new bitcoin.Psbt({ network: this.network })
       .addInputs(utxos.confirmedUtxos.map(toInput))
       .addOutputs(outputs)
-      .signAllInputs(signer(keypair));
+      .signAllInputs(signer(ECPair.fromPrivateKey(b32.privateKey)));
     if (!psbt.validateSignaturesOfAllInputs(validator)) {
       throw new Error("One or more invalid signatures");
     }
 
     const txHex = psbt.finalizeAllInputs().extractTransaction().toHex();
     console.log(
-      `Bitcoin transaction: sending ${amount} from ${utxos.address} to ${to}`,
+      `Bitcoin: sending ${satsToBtc(Number(amount))} BTC from ${utxos.address} to ${destination} with fee ${satsToBtc(Number(fee))}`,
     );
     console.log("Transacton hex:", txHex);
 

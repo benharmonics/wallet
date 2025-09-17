@@ -1,4 +1,4 @@
-export function satsToBTC(sats: number): string {
+export function satsToBtc(sats: number): string {
   const sign = sats < 0 ? "-" : "";
   const abs = Math.abs(sats);
   const whole = Math.floor(abs / 1e8);
