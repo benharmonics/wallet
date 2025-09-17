@@ -30,6 +30,9 @@ export class EthereumWallet {
     return this.wallet(addressIndex).then((w) => w.getAddress());
   }
 
+  /**
+   * Balance in Wei.
+   */
   async balance(addressIndex: number = 0): Promise<bigint> {
     return this.provider.getBalance(await this.address(addressIndex));
   }

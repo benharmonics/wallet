@@ -21,7 +21,9 @@ async function run(): Promise<Wallet> {
 }
 
 function main() {
-  run().then(w => w.disconnect()).catch(console.error);
+  run()
+    .then((w) => w.disconnect())
+    .catch(console.error);
   // // ------------------ BTC tests ------------------
   // const btcWallet = new BitcoinWallet(
   //   settings.mnemonic,

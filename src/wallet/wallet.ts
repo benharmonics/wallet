@@ -2,6 +2,8 @@ import { EthereumWallet } from "./ethereum";
 import { BitcoinWallet } from "./bitcoin";
 import { WalletSettings } from "./settings";
 import { RippleWallet } from "./ripple";
+import { formatEther } from "ethers";
+import { satsToBtc } from "@utils/blockchain";
 
 export type BitcoinAddressOptions = { protocol: "bitcoin" };
 export type GenericAddressOptions = {
@@ -90,26 +92,28 @@ export class Wallet {
         const addressIndex = this.settings.wallet.bitcoin.addressIndex;
         return this.bitcoin.address(addressIndex);
       case "ethereum":
-        return this.ethereum.address(opts.addressIndex ?? 0);
+        return this.ethereum.address(opts.addressIndex);
       case "ripple":
-        return this.ripple.address(opts.addressIndex ?? 0);
+        return this.ripple.address(opts.addressIndex);
     }
   }
 
-  async balance(opts: WalletBalanceOptions): Promise<number> {
+  async balance(opts: WalletBalanceOptions): Promise<string> {
     switch (opts.protocol) {
       case "bitcoin":
         const addressIndex = this.settings.wallet.bitcoin.addressIndex;
         const utxos = await this.bitcoin.utxos(addressIndex);
-        return utxos.confirmedUtxos.reduce((s, u) => s + u.value, 0);
+        const balSats = utxos.confirmedUtxos.reduce((s, u) => s + u.value, 0);
+        return satsToBtc(balSats);
       case "ethereum":
         if (!opts.asset || opts.asset.toUpperCase() === "ETH") {
-          return Number(this.ethereum.balance(opts.addressIndex ?? 0));
+          const balWei = await this.ethereum.balance(opts.addressIndex);
+          return formatEther(balWei);
         }
         throw new Error("Non-native token balances unimplemented for Ethereum");
       case "ripple":
         if (!opts.asset || opts.asset.toUpperCase() === "XRP") {
-          return Number(this.ripple.balance(opts.addressIndex ?? 0));
+          return `${await this.ripple.balance(opts.addressIndex)}`;
         }
         throw new Error("Non-native token balances unimplemented for Ripple");
     }
