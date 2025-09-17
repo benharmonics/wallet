@@ -34,6 +34,20 @@ if (process.env.NODE_ENV !== "production") {
   app.set("json spaces", 2);
 }
 
+app.use("/wallet", (req, res, next) => {
+  if (!WalletManager.isAuthenticated) {
+    respond(
+      req,
+      res,
+      StatusCodes.UNAUTHORIZED,
+      null,
+      "user is not authenticated",
+    );
+    return;
+  }
+  next();
+});
+
 const ZProtocol = z.enum(Protocols);
 
 const AuthRequestBody = z.object({ password: z.string() });
@@ -52,29 +66,15 @@ app.post("/auth", async (req, res) => {
     .catch((e) => respond(req, res, StatusCodes.UNAUTHORIZED, null, e));
 });
 
-app.get("/wallet", async (req, res) => {
-  if (!WalletManager.isAuthenticated) {
-    respond(
-      req,
-      res,
-      StatusCodes.UNAUTHORIZED,
-      null,
-      "user is not authenticated",
-    );
-    return;
-  }
-  respond(req, res, StatusCodes.OK, WalletManager.wallet!.accounts);
-});
-
-const WalletPostRequestBody = z.object({
+const KeystorePostRequestBody = z.object({
   password: z.string().nonoptional(),
   mnemonic: z.string().nonoptional(),
 });
 
-app.post("/wallet", async (req, res) => {
+app.post("/keystore", async (req, res) => {
   let data;
   try {
-    data = WalletPostRequestBody.parse(req.body);
+    data = KeystorePostRequestBody.parse(req.body);
   } catch (e) {
     respond(req, res, StatusCodes.BAD_REQUEST, null, e);
     return;
@@ -85,6 +85,10 @@ app.post("/wallet", async (req, res) => {
     .catch((e) =>
       respond(req, res, StatusCodes.INTERNAL_SERVER_ERROR, null, e),
     );
+});
+
+app.get("/wallet", async (req, res) => {
+  respond(req, res, StatusCodes.OK, WalletManager.wallet!.accounts);
 });
 
 const AddressRequestQuery = z.object({
@@ -104,26 +108,12 @@ function walletAddressOptions(
   }
 }
 
-app.use("/address/:protocol", (req, res, next) => {
-  if (!WalletManager.isAuthenticated) {
-    respond(
-      req,
-      res,
-      StatusCodes.UNAUTHORIZED,
-      null,
-      "user is not authenticated",
-    );
-    return;
-  }
-  next();
-});
-
-app.get("/address/:protocol", async (req, res) => {
+app.get("/wallet/address/:protocol", async (req, res) => {
   let protocol;
   try {
     protocol = ZProtocol.parse(req.params.protocol);
-  } catch (e) {
-    respond(req, res, StatusCodes.BAD_REQUEST, null, e);
+  } catch (_) {
+    respond(req, res, StatusCodes.BAD_REQUEST, null, `expected protocol to be one of ${Protocols}`);
     return;
   }
   const opts = walletAddressOptions(protocol, req.query);
@@ -158,26 +148,12 @@ function walletBalanceOptions(
   }
 }
 
-app.use("/balance/:protocol", (req, res, next) => {
-  if (!WalletManager.isAuthenticated) {
-    respond(
-      req,
-      res,
-      StatusCodes.UNAUTHORIZED,
-      null,
-      "user is not authenticated",
-    );
-    return;
-  }
-  next();
-});
-
-app.get("/balance/:protocol", async (req, res) => {
+app.get("/wallet/balance/:protocol", async (req, res) => {
   let protocol;
   try {
     protocol = ZProtocol.parse(req.params.protocol);
   } catch (e) {
-    respond(req, res, StatusCodes.BAD_REQUEST, null, e);
+    respond(req, res, StatusCodes.BAD_REQUEST, null, `expected protocol to be one of ${Protocols}`);
     return;
   }
   const opts = walletBalanceOptions(protocol, req.query);
@@ -206,21 +182,7 @@ const SendRequestBody = z.object({
   asset: z.string().optional(),
 });
 
-app.use("/send", (req, res, next) => {
-  if (!WalletManager.isAuthenticated) {
-    respond(
-      req,
-      res,
-      StatusCodes.UNAUTHORIZED,
-      null,
-      "user is not authenticated",
-    );
-    return;
-  }
-  next();
-});
-
-app.post("/send", async (req, res) => {
+app.post("/wallet/send", async (req, res) => {
   let data;
   try {
     data = SendRequestBody.parse(req.body);
