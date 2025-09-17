@@ -40,6 +40,15 @@ export type GenericSendOptions = {
 };
 export type WalletSendOptions = BitcoinSendOptions | GenericSendOptions;
 
+export type TransactionResponse = {
+  amount: string,
+  asset: string,
+  protocol: string,
+  origin: string,
+  destination: string,
+  txHash: string,
+};
+
 export type WalletSaveDataOptions = {
   mnemonicPath: string;
   walletDataPath: string;
@@ -144,7 +153,7 @@ export class Wallet {
     }
   }
 
-  async send(opts: WalletSendOptions): Promise<string> {
+  async send(opts: WalletSendOptions): Promise<TransactionResponse> {
     switch (opts.protocol) {
       case "bitcoin":
         const addressIndex = this.settings.wallet.bitcoin.addressIndex;
@@ -168,7 +177,14 @@ export class Wallet {
               ),
             );
         }
-        return txHash;
+        return {
+          txHash,
+          origin: this.bitcoin.address(addressIndex),
+          destination: opts.destination,
+          amount: opts.amount,
+          protocol: opts.protocol,
+          asset: "BTC",
+        };
       case "ethereum":
         if (!opts.asset || opts.asset.toUpperCase() === "ETH") {
           const res = await this.ethereum.send(
@@ -176,7 +192,14 @@ export class Wallet {
             opts.destination,
             opts.addressIndex,
           );
-          return res.hash;
+          return {
+            txHash: res.hash,
+            origin: await this.ethereum.address(opts.addressIndex),
+            destination: opts.destination,
+            amount: opts.amount,
+            protocol: opts.protocol,
+            asset: "ETH",
+          };
         }
         throw new Error("Non-native token balances unimplemented for Ethereum");
       case "ripple":
@@ -186,7 +209,14 @@ export class Wallet {
             opts.destination,
             opts.addressIndex,
           );
-          return typeof res.id === "string" ? res.id : `${res.id}`;
+          return {
+            txHash: typeof res.id === "string" ? res.id : `${res.id}`,
+            origin: this.ripple.address(opts.addressIndex),
+            destination: opts.destination,
+            amount: opts.amount,
+            protocol: opts.protocol,
+            asset: "XRP",
+          };
         }
         throw new Error("Non-native token balances unimplemented for Ripple");
       case "stellar":
@@ -196,8 +226,14 @@ export class Wallet {
           asset: opts.asset,
         };
         const res = await this.stellar.send(_opts, opts.addressIndex);
-        console.log("Sent Stellar transaction:", res);
-        return res.hash;
+        return {
+          txHash: res.hash,
+          origin: this.stellar.pubKey(opts.addressIndex),
+          destination: opts.destination,
+          amount: opts.amount,
+          protocol: opts.protocol,
+          asset: "XLM",
+        };
     }
   }
 }
