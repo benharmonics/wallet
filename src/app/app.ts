@@ -1,9 +1,9 @@
-import { enterCredentials, bindWalletEvents } from "./accounts";
+import { walletPage, bindWalletEvents } from "./accounts";
 
 const app = document.getElementById("app");
 
 const pages: Record<string, () => string> = {
-  home: enterCredentials,
+  home: walletPage,
   about: () => "<h1>About</h1><p>This is a static page</p>",
   contact: () => "<h1>Contact Us</h1><p>Contact us at...</p>",
 };
