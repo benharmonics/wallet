@@ -14,15 +14,14 @@ app.use(express.json());
 const AuthRequestBody = z.object({ password: z.string() });
 
 app.post("/auth", async (req, res) => {
-  let password: string;
+  let body;
   try {
-    const body = AuthRequestBody.parse(req.body);
-    password = body.password;
+    body = AuthRequestBody.parse(req.body);
   } catch (e) {
     res.status(400).send(e);
     return;
   }
-  await WalletManager.auth(password)
+  await WalletManager.auth(body.password)
     .then(() => console.log("Authenticated"))
     .then(() => res.send("OK"))
     .catch(() => res.status(401).send("Unauthorized"));
