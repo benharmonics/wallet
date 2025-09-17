@@ -1,4 +1,4 @@
-import * as StellarSdk from "@stellar/stellar-sdk"
+import * as StellarSdk from "@stellar/stellar-sdk";
 
 import bip44, { Bip44Coin } from "../bip44";
 import { providerRpcEndpoint } from "src/provider";
@@ -6,34 +6,43 @@ import { providerRpcEndpoint } from "src/provider";
 const standardTimebounds = 300; // 5 minutes to sign/review/submit
 
 export type SendOptions = {
-  valueXlm: string,
-  destination: string,
-  asset?: string,
-  memo?: any,
-}
+  valueXlm: string;
+  destination: string;
+  asset?: string;
+  memo?: any;
+};
 
 export class StellarWallet {
-  constructor(private readonly mnemonic: string, private readonly mainnet: boolean = false) {
-  }
+  constructor(
+    private readonly mnemonic: string,
+    private readonly mainnet: boolean = false,
+  ) {}
 
   pubKey(addressIndex: number = 0): string {
     const pair = this.keypair(addressIndex);
     return pair.publicKey();
   }
 
-  async account(addressIndex: number = 0): Promise<StellarSdk.Horizon.AccountResponse> {
+  async account(
+    addressIndex: number = 0,
+  ): Promise<StellarSdk.Horizon.AccountResponse> {
     const pubKey = this.pubKey(addressIndex);
     return this.server().loadAccount(pubKey);
   }
 
-  async send(opts: SendOptions, addressIndex: number = 0): Promise<StellarSdk.Horizon.HorizonApi.SubmitTransactionResponse> {
+  async send(
+    opts: SendOptions,
+    addressIndex: number = 0,
+  ): Promise<StellarSdk.Horizon.HorizonApi.SubmitTransactionResponse> {
     const server = this.server();
     const [source, fee] = await Promise.all([
       this.account(addressIndex),
       server.fetchBaseFee(),
     ]);
     const txBuilder = new StellarSdk.TransactionBuilder(source, {
-      networkPassphrase: this.mainnet ? StellarSdk.Networks.PUBLIC : StellarSdk.Networks.TESTNET,
+      networkPassphrase: this.mainnet
+        ? StellarSdk.Networks.PUBLIC
+        : StellarSdk.Networks.TESTNET,
       fee: fee.toString(),
     });
     if (opts.memo) {
@@ -43,23 +52,28 @@ export class StellarWallet {
         txBuilder.addMemo(StellarSdk.Memo.hash(opts.memo.toString("hex")));
       }
     }
-    let asset = StellarSdk.Asset.native()
+    let asset = StellarSdk.Asset.native();
     if (opts.asset && opts.asset !== "native") {
       const parts = opts.asset.split(":");
       asset = new StellarSdk.Asset(parts[0], parts[1]);
     }
-    txBuilder.addOperation(StellarSdk.Operation.payment({
-      amount: opts.valueXlm,
-      asset,
-      destination: opts.destination,
-    }));
+    txBuilder.addOperation(
+      StellarSdk.Operation.payment({
+        amount: opts.valueXlm,
+        asset,
+        destination: opts.destination,
+      }),
+    );
     const tx = txBuilder.setTimeout(standardTimebounds).build();
     tx.sign(this.keypair(addressIndex));
     return server.submitTransaction(tx);
   }
 
   private server(): StellarSdk.Horizon.Server {
-    const horizonUrl = providerRpcEndpoint("stellar", this.mainnet ? "mainnet" : "testnet");
+    const horizonUrl = providerRpcEndpoint(
+      "stellar",
+      this.mainnet ? "mainnet" : "testnet",
+    );
     return new StellarSdk.Horizon.Server(horizonUrl);
   }
 

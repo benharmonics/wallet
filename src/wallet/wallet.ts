@@ -70,10 +70,7 @@ export class Wallet {
       settings.mnemonic,
       mainnet ? "mainnet" : "testnet",
     );
-    this.stellar = new StellarWallet(
-      settings.mnemonic,
-      mainnet,
-    );
+    this.stellar = new StellarWallet(settings.mnemonic, mainnet);
   }
 
   public static async new(settings: NewWalletSettings): Promise<Wallet> {
@@ -126,9 +123,12 @@ export class Wallet {
         }
         throw new Error("Non-native token balances unimplemented for Ripple");
       case "stellar":
-        if (!opts.asset || ["NATIVE", "XLM"].includes(opts.asset.toUpperCase())) {
+        if (
+          !opts.asset ||
+          ["NATIVE", "XLM"].includes(opts.asset.toUpperCase())
+        ) {
           const acc = await this.stellar.account(opts.addressIndex);
-          const native = acc.balances.find(b => b.asset_type === "native")!;
+          const native = acc.balances.find((b) => b.asset_type === "native")!;
           return native.balance;
         }
         throw new Error("Non-native token balances unimplemented for Stellar");
@@ -181,7 +181,11 @@ export class Wallet {
         }
         throw new Error("Non-native token balances unimplemented for Ripple");
       case "stellar":
-        const _opts = { valueXlm: opts.amount, destination: opts.destination, asset: opts.asset };
+        const _opts = {
+          valueXlm: opts.amount,
+          destination: opts.destination,
+          asset: opts.asset,
+        };
         const res = await this.stellar.send(_opts, opts.addressIndex);
         console.log("Sent Stellar transaction:", res);
         return res.hash;
@@ -202,10 +206,16 @@ export class WalletManager {
     if (WalletManager.active) return;
     WalletManager.active = true;
     setInterval(() => {
-      const authTimedOut = !WalletManager.lastAuth || new Date().getTime() - WalletManager.lastAuth.getTime() > WalletManager.logoutTimeout;
+      const authTimedOut =
+        !WalletManager.lastAuth ||
+        new Date().getTime() - WalletManager.lastAuth.getTime() >
+          WalletManager.logoutTimeout;
       const isAuthenticated = wallet !== null;
       if (authTimedOut && isAuthenticated) {
-        console.log("Logging out - last auth:", WalletManager.lastAuth?.toLocaleString());
+        console.log(
+          "Logging out - last auth:",
+          WalletManager.lastAuth?.toLocaleString(),
+        );
         wallet?.disconnect();
         wallet = null;
       }
@@ -214,7 +224,7 @@ export class WalletManager {
 
   static get wallet(): Wallet | null {
     return wallet;
-  };
+  }
 
   static get lastAuth(): Date | null {
     return lastAuth;
@@ -222,7 +232,8 @@ export class WalletManager {
 
   static async auth(password: string = "password") {
     WalletManager.authCheckSetInterval();
-    const { mnemonicPath, walletDataPath, mainnet } = WalletManager.appConfiguration;
+    const { mnemonicPath, walletDataPath, mainnet } =
+      WalletManager.appConfiguration;
     wallet = await Wallet.new({
       mnemonicPath,
       walletDataPath,
@@ -232,4 +243,3 @@ export class WalletManager {
     lastAuth = new Date();
   }
 }
-

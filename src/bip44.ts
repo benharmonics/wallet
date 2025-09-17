@@ -25,10 +25,7 @@ export type Bip44Args = {
   addressIndex: number;
 };
 
-export function bip44(
-  mnemonic: string,
-  args: Bip44Args,
-): BIP32Interface {
+export function bip44(mnemonic: string, args: Bip44Args): BIP32Interface {
   return bip32
     .fromSeed(mnemonicToSeedSync(mnemonic))
     .derivePath("44'")
