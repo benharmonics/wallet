@@ -11,22 +11,19 @@ import { providerRpcEndpoint, Protocol } from "../provider";
 import bip44, { Bip44Coin } from "../bip44";
 import erc20 from "../../abi/erc20.json";
 
+export type EthereumNetwork = "mainnet" | "sepolia" | "holesky" | "hoodi";
+
 export type Erc20Balance = { balance: bigint; decimals: number };
 
 export class EthereumWallet {
   private readonly mnemonic: string;
   private readonly provider: Provider;
-  private readonly protocol: Protocol;
+  private readonly protocol: Protocol = "ethereum";
 
-  constructor(
-    mnemonic: string,
-    protocol: Protocol = "ethereum",
-    network: string = "sepolia",
-  ) {
-    const rpcEndpoint = providerRpcEndpoint(protocol, network);
+  constructor(mnemonic: string, network: EthereumNetwork = "sepolia") {
+    const rpcEndpoint = providerRpcEndpoint(this.protocol, network);
     this.provider = getDefaultProvider(rpcEndpoint);
     this.mnemonic = mnemonic;
-    this.protocol = protocol;
   }
 
   async address(addressIndex: number = 0): Promise<string> {

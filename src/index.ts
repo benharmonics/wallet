@@ -12,6 +12,10 @@ async function main() {
   const wallet = new RippleWallet(mnemonic);
   console.log("Address:", await wallet.address());
   console.log("Balance:", await wallet.balance());
+  console.log("Address 2:", await wallet.address(1));
+  console.log("Balance 2:", await wallet.balance(1));
+  // const res = await wallet.send("20", await wallet.address(1))
+  // console.log("Sent XRP:", res);
   await wallet.disconnect();
   // const btcWallet = new BitcoinWallet(mnemonic);
   //
