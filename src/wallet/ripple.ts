@@ -2,7 +2,7 @@ import * as xrpl from "xrpl";
 import { Bip44Change, Bip44Coin } from "../bip44";
 import { providerRpcEndpoint, Protocol } from "../provider";
 
-export type RippleNetwork = "testnet" | "devnet";
+export type RippleNetwork = "mainnet" | "testnet" | "devnet";
 
 export class RippleWallet {
   private readonly mnemonic: string;
