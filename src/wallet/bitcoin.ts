@@ -3,6 +3,7 @@ import * as ecc from "tiny-secp256k1";
 import * as bitcoin from "bitcoinjs-lib";
 import { providerRpcEndpoint, Protocol } from "../provider";
 import bip44, { Bip44Coin } from "../bip44";
+import { AddressUtxoResult, addressUtxosAndBalance } from "./esplora";
 
 const ECPair = ECPairFactory(ecc);
 
@@ -26,17 +27,20 @@ export class BitcoinWallet {
       coin: Bip44Coin.bitcoin,
       addressIndex,
     });
-    if (!b44.privateKey) {
-      throw new Error("Failed to derive private key");
-    }
-    const keypair = ECPair.fromPrivateKey(b44.privateKey);
     const { address } = bitcoin.payments.p2wpkh({
       network: this.network,
-      pubkey: Buffer.from(keypair.publicKey),
+      pubkey: Buffer.from(b44.publicKey),
     });
     if (!address) {
       throw new Error("Unable to derive address");
     }
     return address;
+  }
+
+  async utxos(addressIndex: number = 0): Promise<AddressUtxoResult> {
+    const mainnet = this.network === bitcoin.networks.bitcoin;
+    return this.address(addressIndex).then((a) =>
+      addressUtxosAndBalance(a, { mainnet }),
+    );
   }
 }

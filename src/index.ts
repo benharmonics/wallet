@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { formatUnits } from "ethers";
 
-import { BitcoinWallet, EthereumWallet } from "./wallet/wallet";
+import { BitcoinWallet, EthereumWallet } from "@wallet";
 import { Erc20ContractAddresses } from "./contract";
 
 async function main() {
@@ -10,7 +10,7 @@ async function main() {
     throw new Error("MNEMONIC is required");
   }
   const btcWallet = new BitcoinWallet(mnemonic);
-  console.log(await btcWallet.address());
+  console.log(await btcWallet.utxos());
 }
 
 main().catch(console.error);
