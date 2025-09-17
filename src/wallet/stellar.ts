@@ -16,20 +16,19 @@ export class StellarWallet {
   constructor(private readonly mnemonic: string, private readonly mainnet: boolean = false) {
   }
 
-  async pubKey(addressIndex: number = 0): Promise<string> {
-    const pair = await this.keypair(addressIndex);
+  pubKey(addressIndex: number = 0): string {
+    const pair = this.keypair(addressIndex);
     return pair.publicKey();
   }
 
   async account(addressIndex: number = 0): Promise<StellarSdk.Horizon.AccountResponse> {
-    const pubKey = await this.pubKey(addressIndex);
+    const pubKey = this.pubKey(addressIndex);
     return this.server().loadAccount(pubKey);
   }
 
   async send(opts: SendOptions, addressIndex: number = 0): Promise<StellarSdk.Horizon.HorizonApi.SubmitTransactionResponse> {
     const server = this.server();
-    const [signer, source, fee] = await Promise.all([
-      this.keypair(addressIndex),
+    const [source, fee] = await Promise.all([
       this.account(addressIndex),
       server.fetchBaseFee(),
     ]);
@@ -55,7 +54,7 @@ export class StellarWallet {
       destination: opts.destination,
     }));
     const tx = txBuilder.setTimeout(standardTimebounds).build();
-    tx.sign(signer);
+    tx.sign(this.keypair(addressIndex));
     return server.submitTransaction(tx);
   }
 
@@ -64,13 +63,13 @@ export class StellarWallet {
     return new StellarSdk.Horizon.Server(horizonUrl);
   }
 
-  private async keypair(addressIndex: number): Promise<StellarSdk.Keypair> {
-    const privKey = await this.bip44PrivateKey(addressIndex);
+  private keypair(addressIndex: number): StellarSdk.Keypair {
+    const privKey = this.bip44PrivateKey(addressIndex);
     return StellarSdk.Keypair.fromRawEd25519Seed(Buffer.from(privKey));
   }
 
-  private async bip44PrivateKey(addressIndex: number): Promise<Uint8Array> {
-    const b44 = await bip44(this.mnemonic, {
+  private bip44PrivateKey(addressIndex: number): Uint8Array {
+    const b44 = bip44(this.mnemonic, {
       coin: Bip44Coin.stellar,
       addressIndex,
     });

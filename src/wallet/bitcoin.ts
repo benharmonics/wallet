@@ -82,17 +82,17 @@ export class BitcoinWallet {
     return this.network === bitcoin.networks.bitcoin;
   }
 
-  private async bip32(addressIndex: number): Promise<BIP32Interface> {
+  private bip32(addressIndex: number): BIP32Interface {
     return bip44(this.mnemonic, { coin: Bip44Coin.bitcoin, addressIndex });
   }
 
   async utxos(addressIndex: number): Promise<AddressUtxoResult> {
-    const address = await this.address(addressIndex);
+    const address = this.address(addressIndex);
     return addressUtxosAndBalance(address, { mainnet: this.mainnet });
   }
 
-  async address(addressIndex: number): Promise<string> {
-    const b32 = await this.bip32(addressIndex);
+  address(addressIndex: number): string {
+    const b32 = this.bip32(addressIndex);
     const { address } = bitcoin.payments.p2wpkh({
       network: this.network,
       pubkey: Buffer.from(b32.publicKey),
@@ -109,11 +109,11 @@ export class BitcoinWallet {
     addressIndex: number,
     changeAddress?: string,
   ): Promise<string> {
-    const [b32, utxos, feeRates] = await Promise.all([
-      this.bip32(addressIndex),
+    const [utxos, feeRates] = await Promise.all([
       this.utxos(addressIndex),
       feeEstimates({ mainnet: this.mainnet }),
     ]);
+    const b32 = this.bip32(addressIndex);
     if (!b32.privateKey) {
       throw new Error("Failed to generate private key");
     }

@@ -137,7 +137,7 @@ export class Wallet {
         const addressIndex = this.settings.wallet.bitcoin.addressIndex;
         const rotateAddress = this.settings.wallet.bitcoin.rotateAddress;
         const changeAddress = rotateAddress
-          ? await this.bitcoin.address(addressIndex + 1)
+          ? this.bitcoin.address(addressIndex + 1)
           : undefined;
         const txHash = await this.bitcoin.send(
           opts.amount,

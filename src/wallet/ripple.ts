@@ -34,7 +34,7 @@ export class RippleWallet {
     });
   }
 
-  async address(addressIndex: number = 0): Promise<string> {
+  address(addressIndex: number = 0): string {
     return this.wallet(addressIndex).address;
   }
 

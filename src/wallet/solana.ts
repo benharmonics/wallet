@@ -40,7 +40,7 @@ export class SolanaWallet {
   }
 
   async address(addressIndex: number = 0): Promise<string> {
-    const b44 = await bip44(this.mnemonic, {
+    const b44 = bip44(this.mnemonic, {
       coin: Bip44Coin.solana,
       addressIndex,
     });
@@ -58,7 +58,7 @@ export class SolanaWallet {
    * @returns confirmed transaction signature (base58)
    */
   async send(valueSol: string, to: string, addressIndex: number = 0): Promise<string> {
-    const b44 = await bip44(this.mnemonic, {
+    const b44 = bip44(this.mnemonic, {
       coin: Bip44Coin.solana,
       addressIndex,
     });

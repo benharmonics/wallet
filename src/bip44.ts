@@ -1,6 +1,6 @@
 import BIP32Factory, { BIP32Interface } from "bip32";
 import * as ecc from "tiny-secp256k1";
-import { mnemonicToSeed } from "@scure/bip39";
+import { mnemonicToSeedSync } from "@scure/bip39";
 
 const bip32 = BIP32Factory(ecc);
 
@@ -25,12 +25,12 @@ export type Bip44Args = {
   addressIndex: number;
 };
 
-export async function bip44(
+export function bip44(
   mnemonic: string,
   args: Bip44Args,
-): Promise<BIP32Interface> {
+): BIP32Interface {
   return bip32
-    .fromSeed(await mnemonicToSeed(mnemonic))
+    .fromSeed(mnemonicToSeedSync(mnemonic))
     .derivePath("44'")
     .derivePath(args.coin)
     .derivePath(`${args.account ?? 0}'`)

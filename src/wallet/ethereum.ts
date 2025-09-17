@@ -27,7 +27,7 @@ export class EthereumWallet {
   }
 
   async address(addressIndex: number = 0): Promise<string> {
-    return this.wallet(addressIndex).then((w) => w.getAddress());
+    return this.wallet(addressIndex).getAddress();
   }
 
   /**
@@ -42,12 +42,9 @@ export class EthereumWallet {
     to: string,
     addressIndex: number = 0,
   ): Promise<TransactionResponse> {
-    const [fees, wallet] = await Promise.all([
-      maxFees(this.provider),
-      this.wallet(addressIndex),
-    ]);
+    const fees = await maxFees(this.provider);
     const { maxPriorityFeePerGas, maxFeePerGas } = fees;
-    return wallet.sendTransaction({
+    return this.wallet(addressIndex).sendTransaction({
       to,
       maxFeePerGas,
       maxPriorityFeePerGas,
@@ -74,9 +71,8 @@ export class EthereumWallet {
     addressIndex: number = 0,
   ): Promise<TransactionResponse> {
     const contract = new Contract(contractAddress, erc20, this.provider);
-    const [fees, wallet, decimals] = await Promise.all([
+    const [fees, decimals] = await Promise.all([
       maxFees(this.provider),
-      this.wallet(addressIndex),
       contract.decimals(),
     ]);
     const { maxPriorityFeePerGas, maxFeePerGas } = fees;
@@ -84,7 +80,7 @@ export class EthereumWallet {
       to,
       parseUnits(amount, decimals),
     ]);
-    return wallet.sendTransaction({
+    return this.wallet(addressIndex).sendTransaction({
       to: contractAddress,
       maxFeePerGas,
       maxPriorityFeePerGas,
@@ -93,8 +89,8 @@ export class EthereumWallet {
     });
   }
 
-  private async wallet(addressIndex: number): Promise<EWallet> {
-    const b44 = await bip44(this.mnemonic, {
+  private wallet(addressIndex: number): EWallet {
+    const b44 = bip44(this.mnemonic, {
       coin: this.bip44Coin(),
       addressIndex,
     });
