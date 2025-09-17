@@ -1,0 +1,25 @@
+{
+  "name": "wallet",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^22.13.13",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2",
+    "typescript-language-server": "^4.3.4"
+  },
+  "dependencies": {
+    "@scure/bip39": "^1.5.4",
+    "bip32": "^5.0.0-rc.0",
+    "dotenv": "^16.4.7",
+    "ethers": "^6.13.5",
+    "tiny-secp256k1": "^2.2.3"
+  }
+}
