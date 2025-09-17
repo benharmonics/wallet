@@ -1,4 +1,4 @@
-import { formatEther } from "ethers";
+import { formatEther, formatUnits } from "ethers";
 import { satsToBtc } from "@utils/blockchain";
 import { EthereumWallet } from "./ethereum";
 import { BitcoinWallet } from "./bitcoin";
@@ -185,11 +185,8 @@ export class Wallet {
         const balSats = utxos.confirmedUtxos.reduce((s, u) => s + u.value, 0);
         return satsToBtc(balSats);
       case "ethereum":
-        if (!opts.asset || opts.asset.toUpperCase() === "ETH") {
-          const balWei = await this.ethereum.balance(opts);
-          return formatEther(balWei.balance);
-        }
-        throw new Error("Non-native token balances unimplemented for Ethereum");
+        const { balance, decimals } = await this.ethereum.balance(opts);
+        return formatUnits(balance, decimals);
       case "ripple":
         if (!opts.asset || opts.asset.toUpperCase() === "XRP") {
           return `${await this.ripple.balance(opts.addressIndex)}`;
@@ -241,22 +238,20 @@ export class Wallet {
           asset: "BTC",
         };
       case "ethereum":
-        if (!opts.asset || opts.asset.toUpperCase() === "ETH") {
-          const res = await this.ethereum.send({
-            amount: opts.amount,
-            to: opts.destination,
-            addressIndex: opts.addressIndex,
-          });
-          return {
-            txHash: res.hash,
-            origin: await this.ethereum.address(opts.addressIndex),
-            destination: opts.destination,
-            amount: opts.amount,
-            protocol: opts.protocol,
-            asset: "ETH",
-          };
-        }
-        throw new Error("Non-native token balances unimplemented for Ethereum");
+        const { hash } = await this.ethereum.send({
+          symbol: opts.asset,
+          amount: opts.amount,
+          to: opts.destination,
+          addressIndex: opts.addressIndex,
+        });
+        return {
+          txHash: hash,
+          origin: await this.ethereum.address(opts.addressIndex),
+          destination: opts.destination,
+          amount: opts.amount,
+          protocol: opts.protocol,
+          asset: "ETH",
+        };
       case "ripple":
         if (!opts.asset || opts.asset.toUpperCase() === "XRP") {
           const res = await this.ripple.send(

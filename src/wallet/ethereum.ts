@@ -20,14 +20,14 @@ const erc20Contracts: Record<string, string> = {
 export type EthereumNetwork = "mainnet" | "sepolia" | "holesky" | "hoodi";
 
 export type Balance = { balance: bigint; decimals: number };
-export type BalanceOptions = { symbol?: string, addressIndex?: number };
+export type BalanceOptions = { symbol?: string; addressIndex?: number };
 
 export type SendOptions = {
-  amount: string,
-  to: string,
-  addressIndex?: number,
-  symbol?: string,
-}
+  amount: string;
+  to: string;
+  addressIndex?: number;
+  symbol?: string;
+};
 
 export class EthereumWallet {
   private readonly mnemonic: string;
@@ -71,7 +71,7 @@ export class EthereumWallet {
   }
 
   private async balanceErc20(opts: BalanceOptions): Promise<Balance> {
-    const {symbol, addressIndex} = opts;
+    const { symbol, addressIndex } = opts;
     const contractAddress = erc20Contracts[symbol!.toUpperCase()];
     if (!contractAddress) {
       throw new Error(`Unsupported asset ${symbol}`);
@@ -85,7 +85,7 @@ export class EthereumWallet {
   }
 
   private async sendErc20(opts: SendOptions): Promise<TransactionResponse> {
-    const {symbol, to, amount, addressIndex} = opts;
+    const { symbol, to, amount, addressIndex } = opts;
     const contractAddress = erc20Contracts[symbol!.toUpperCase()];
     if (!contractAddress) {
       throw new Error(`Unsupported asset ${symbol}`);
