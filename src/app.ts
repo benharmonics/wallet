@@ -1,7 +1,6 @@
 import express from "express";
 import * as z from "zod";
 import {
-  Wallet,
   WalletAddressOptions,
   WalletBalanceOptions,
   WalletManager,
@@ -43,19 +42,12 @@ app.post("/wallet", async (req, res) => {
     res.status(400).send(e);
     return;
   }
-  const { mnemonicPath, walletDataPath, mainnet } =
-    WalletManager.appConfiguration;
-  const wallet = Wallet.saveNew(data.mnemonic, {
-    mnemonicPath,
-    walletDataPath,
-    mainnet,
-    password: data.password,
-  });
-  res.json(wallet);
+  await WalletManager.saveNew(data.mnemonic, data.password);
+  res.send("Saved new wallet");
 });
 
 const AddressRequestQuery = z.object({
-  addressIndex: z.coerce.number().int().positive().optional(),
+  addressIndex: z.coerce.number().int().gte(0).optional(),
 });
 
 function walletAddressOptions(
@@ -94,7 +86,7 @@ app.get("/address/:protocol", async (req, res) => {
 });
 
 const BalanceRequestQuery = z.object({
-  addressIndex: z.coerce.number().int().positive().optional(),
+  addressIndex: z.coerce.number().int().gte(0).optional(),
   asset: z.string().optional(),
 });
 
@@ -138,10 +130,10 @@ const SendRequestBody = z.object({
   destination: z.string().nonempty().nonoptional(),
   amount: z
     .number()
-    .positive()
+    .gte(0)
     .nonoptional()
     .transform((n) => n.toString()),
-  addressIndex: z.number().int().positive().optional(),
+  addressIndex: z.number().int().gte(0).optional(),
   asset: z.string().optional(),
 });
 

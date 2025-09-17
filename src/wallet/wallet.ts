@@ -206,8 +206,8 @@ let wallet: Wallet | null = null;
 let lastAuth: Date | null = null;
 
 export class WalletManager {
-  static readonly appConfiguration = new AppConfiguration();
-  private static logoutTimeout = 30 * 60 * 1000; // 30 minutes
+  private static readonly appConfiguration = new AppConfiguration();
+  private static readonly logoutTimeout = 30 * 60 * 1000; // 30 minutes
   private static active = false;
 
   // Delete static Wallet intermittently
@@ -219,11 +219,9 @@ export class WalletManager {
         !WalletManager.lastAuth ||
         new Date().getTime() - WalletManager.lastAuth.getTime() >
           WalletManager.logoutTimeout;
-      const isAuthenticated = wallet !== null;
-      if (authTimedOut && isAuthenticated) {
+      if (authTimedOut && WalletManager.isAuthenticated) {
         console.log(
-          "Logging out - last auth:",
-          WalletManager.lastAuth?.toLocaleString(),
+          `Logging out - last auth: ${WalletManager.lastAuth?.toLocaleString()}`,
         );
         wallet?.disconnect();
         wallet = null;
@@ -241,6 +239,20 @@ export class WalletManager {
 
   static get isAuthenticated(): boolean {
     return wallet !== null;
+  }
+
+  static async saveNew(mnemonic: string, password: string) {
+    if (!WalletManager.isAuthenticated) {
+      throw new Error("Unauthenticated");
+    }
+    const { mnemonicPath, walletDataPath, mainnet } =
+      WalletManager.appConfiguration;
+    wallet = await Wallet.saveNew(mnemonic, {
+      mnemonicPath,
+      walletDataPath,
+      mainnet,
+      password,
+    });
   }
 
   static async auth(password: string) {
