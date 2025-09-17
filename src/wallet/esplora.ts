@@ -32,21 +32,50 @@ export type AddressUtxoResult = {
   balances: AddressBalances;
 };
 
-export type AddressUtxosAndBalance = {
+export type AddressUtxosAndBalanceOptions = {
   requestOpts?: JsonRequestOptions;
   provider?: EsploraProvider;
   mainnet?: boolean;
 };
 
-function esploraUrl(provider: EsploraProvider, mainnet: boolean): string {
+export type FeeEstimateResult = {
+  fast: number; // next block
+  medium: number; // next half hour
+  slow: number; // next hour
+  economy: number; // cheapest today
+  biweekly: number; // cheapest in about 3.5 days
+  weekly: number; // cheapest in about a week
+};
+
+function baseEsploraUrl(mainnet: boolean, provider: EsploraProvider): string {
   switch (provider) {
     case "mempool.space":
       return mainnet
         ? "https://mempool.space/api"
         : "https://mempool.space/testnet/api";
     case "blockstream":
-      throw new Error("TODO");
+      return mainnet
+        ? "https://blockstream.info/api"
+        : "https://blockstream.info/testnet/api";
   }
+}
+
+export async function feeEstimates(
+  mainnet: boolean,
+  provider: EsploraProvider = "mempool.space",
+): Promise<FeeEstimateResult> {
+  const baseUrl = baseEsploraUrl(mainnet, provider);
+  const res: Record<string, number> = await fetchJson(
+    `${baseUrl}/fee-estimates`,
+  );
+  return {
+    fast: res["1"],
+    medium: res["3"],
+    slow: res["6"],
+    economy: res["144"],
+    biweekly: res["504"],
+    weekly: res["1008"],
+  };
 }
 
 /**
@@ -55,11 +84,11 @@ function esploraUrl(provider: EsploraProvider, mainnet: boolean): string {
  */
 export async function addressUtxosAndBalance(
   address: string,
-  opts: AddressUtxosAndBalance = {},
+  opts: AddressUtxosAndBalanceOptions = {},
 ): Promise<AddressUtxoResult> {
-  const baseUrl = esploraUrl(
-    opts.provider ?? "mempool.space",
+  const baseUrl = baseEsploraUrl(
     opts.mainnet ?? false,
+    opts.provider ?? "mempool.space",
   );
   const url = `${baseUrl}/address/${address}/utxo`;
   const cfg = { ...DEFAULT_JSON_REQUEST_OPTIONS, ...opts.requestOpts };

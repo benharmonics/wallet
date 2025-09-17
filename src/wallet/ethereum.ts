@@ -38,7 +38,7 @@ export class EthereumWallet {
   }
 
   async send(
-    amount: string,
+    amountEth: string,
     to: string,
     addressIndex: number = 0,
   ): Promise<TransactionResponse> {
@@ -51,7 +51,7 @@ export class EthereumWallet {
       to,
       maxFeePerGas,
       maxPriorityFeePerGas,
-      value: parseEther(amount),
+      value: parseEther(amountEth),
     });
   }
 
