@@ -1,12 +1,12 @@
 # Wallet
 
-A basic digital wallet - transfer tokens and assets, create and deploy smart contracts, etc.
+A basic digital wallet with a RESTful API - encrypt and save wallet secrets, derive new keys/addresses, transfer tokens and assets, create and deploy smart contracts, etc.
 
 ## Wallet API
 
 An HTTP-based API is exposed to facilitate interactions with the blockchain.
 
-Available protocols are:
+Available protocols (blockchains) are:
 
 - ethereum
 - bitcoin
