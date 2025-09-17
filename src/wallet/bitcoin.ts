@@ -128,17 +128,27 @@ export class BitcoinWallet {
 
     const outputs = [{ address: destination, value: Number(amount) }];
 
-    // Fee & change outputs
+    // Change outputs & fee
     let fee = feeForTx(feeRate, utxos.confirmedUtxos.length, 1);
     const changeOneOutput = balance - amount - fee;
     if (changeOneOutput < 0) {
       throw new Error(
         `Insufficient balance: have ${balance} sats, need a minimum of ${amount + fee}`,
       );
-    } else if (changeOneOutput > dust) {
+    } else if (changeOneOutput <= dust) {
+      console.warn(
+        `Change ${changeOneOutput} sats below dust threshold of ${dust} - folding into fee instead of returning to ${changeAddress}`,
+      );
+    } else {
+      // General case - add change output if possible
       fee = feeForTx(feeRate, utxos.confirmedUtxos.length, 2);
       const changeTwoOutputs = balance - amount - fee;
-      if (changeTwoOutputs > dust) {
+      if (changeTwoOutputs <= dust) {
+        // Extremely rare edge case: adding change output renders it to dust, so we can't add it after all
+        console.warn(
+          `Tried to return change to ${changeAddress}, but ${changeTwoOutputs} sats would have been below dust threshold of ${dust} when accounting for fees - folding into fee instead`,
+        );
+      } else {
         changeAddress ??= utxos.address; // send back to origin if no change address provided
         console.log(
           `Bitcoin: sending change ${satsToBtc(Number(changeTwoOutputs))} BTC from ${utxos.address} to ${changeAddress}`,
@@ -147,16 +157,7 @@ export class BitcoinWallet {
           address: changeAddress,
           value: Number(changeTwoOutputs),
         });
-      } else {
-        // Extremely rare edge case: adding change output renders it to dust, so we can't add it after all
-        console.warn(
-          `Tried to return change to ${changeAddress}, but ${changeTwoOutputs} sats would have been below dust threshold of ${dust} when accounting for fees - folding into fee instead`,
-        );
       }
-    } else {
-      console.warn(
-        `Change ${changeOneOutput} sats below dust threshold of ${dust} - folding into fee instead of returning to ${changeAddress}`,
-      );
     }
 
     const toInput = (utxo: EsploraUtxo) => ({
@@ -180,7 +181,7 @@ export class BitcoinWallet {
     console.log(
       `Bitcoin: sending ${satsToBtc(Number(amount))} BTC from ${utxos.address} to ${destination} with fee ${satsToBtc(Number(fee))}`,
     );
-    console.log("Transacton hex:", txHex);
+    console.log("Bitcoin: transacton hex:", txHex);
 
     return broadcastTx(txHex, { mainnet: this.mainnet });
   }
