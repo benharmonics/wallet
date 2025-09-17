@@ -7,6 +7,7 @@ const bip32 = BIP32Factory(ecc);
 export enum Bip44Coin {
   bitcoin = "0'",
   ethereum = "60'",
+  ripple = "144'",
 }
 
 export enum Bip44Change {
