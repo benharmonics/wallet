@@ -7,14 +7,14 @@ import {
 
 type ConfigPaths = { wallet: string; mnemonic: string };
 
-export type WalletState = {
+export type WalletAccounts = {
   bitcoin: { addressIndex: number; rotateAddress: boolean };
   ethereum: { accounts: number[] };
   ripple: { accounts: number[] };
   stellar: { accounts: number[] };
 };
 
-const DEFAULT_WALLET_SETTINGS: WalletState = {
+const DEFAULT_WALLET_ACCOUNTS: WalletAccounts = {
   bitcoin: { addressIndex: 0, rotateAddress: true },
   ethereum: { accounts: [0] },
   ripple: { accounts: [0] },
@@ -29,13 +29,13 @@ export type WalletSettingsLoadOptions = {
 
 export class WalletSettings {
   private constructor(
-    public wallet: WalletState,
+    public accounts: WalletAccounts,
     readonly mnemonic: string,
     private readonly configPaths: ConfigPaths,
   ) {}
 
   async save(): Promise<void> {
-    return saveSettings(this.wallet, this.configPaths.wallet);
+    return saveSettings(this.accounts, this.configPaths.wallet);
   }
 
   static async unsafeEncryptMnemonicFile(
@@ -60,17 +60,17 @@ export class WalletSettings {
 }
 
 export async function saveSettings(
-  settings: WalletState,
+  settings: WalletAccounts,
   path: string,
 ): Promise<void> {
   return writeFileAtomic(path, JSON.stringify(settings));
 }
 
-export async function loadSettings(path: string): Promise<WalletState> {
-  return readJsonFile<WalletState>(path).catch((_) => {
-    saveSettings(DEFAULT_WALLET_SETTINGS, path).catch((e) =>
+export async function loadSettings(path: string): Promise<WalletAccounts> {
+  return readJsonFile<WalletAccounts>(path).catch((_) => {
+    saveSettings(DEFAULT_WALLET_ACCOUNTS, path).catch((e) =>
       console.error(`Failed to save wallet settings: ${e}`),
     );
-    return DEFAULT_WALLET_SETTINGS;
+    return DEFAULT_WALLET_ACCOUNTS;
   });
 }

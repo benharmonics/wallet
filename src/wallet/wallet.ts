@@ -2,10 +2,11 @@ import { formatEther } from "ethers";
 import { satsToBtc } from "@utils/blockchain";
 import { EthereumWallet } from "./ethereum";
 import { BitcoinWallet } from "./bitcoin";
-import { WalletSettings } from "./settings";
+import { WalletSettings, WalletAccounts } from "./settings";
 import { RippleWallet } from "./ripple";
 import { StellarWallet } from "./stellar";
 import { AppConfiguration } from "../config";
+import { Protocol } from "src/provider";
 
 export type BitcoinAddressOptions = { protocol: "bitcoin" };
 export type GenericAddressOptions = {
@@ -81,6 +82,49 @@ export class Wallet {
     this.stellar = new StellarWallet(settings.mnemonic, mainnet);
   }
 
+  get accounts(): WalletAccounts {
+    return this.settings.accounts;
+  }
+
+  updateAccount(action: "add" | "remove", protocol: Protocol, addressIndex: number) {
+    function removeTrackedAddress(accounts: number[]) {
+      const i = accounts.indexOf(addressIndex);
+      if (i !== -1) accounts.splice(i, 1);
+    }
+    function addTrackedAddress(accounts: number[]) {
+      accounts.push(addressIndex);
+      accounts.sort();
+      let write = 1;
+      for (let i = 1; i < accounts.length; i++) {
+        if (accounts[i] !== accounts[i - 1]) accounts[write++] = accounts[i];
+      }
+      accounts.length = Math.max(write, 1);
+    }
+    let accounts: number[];
+    switch (protocol) {
+      case "bitcoin":
+        throw new Error("Bitcoin doesn't really have addresses in the same sense as some others - enable address rotation to send change to a new address on each transaction")
+      case "ripple":
+        accounts = this.settings.accounts.ripple.accounts;
+        break;
+      case "ethereum":
+        accounts = this.settings.accounts.ethereum.accounts;
+        break;
+      case "stellar":
+        accounts = this.settings.accounts.stellar.accounts;
+        break;
+      default:
+        throw new Error(`Failed to update protocol ${protocol}`);
+    }
+    switch (action) {
+      case "add":
+        addTrackedAddress(accounts)
+      case "remove":
+        removeTrackedAddress(accounts);
+    }
+    this.settings.save().then(() => console.log("Saved settings")).catch((e) => console.log(`Failed to save settings: ${e}`));
+  }
+
   static async saveNew(
     mnemonic: string,
     opts: WalletSaveDataOptions,
@@ -111,7 +155,7 @@ export class Wallet {
   async address(opts: WalletAddressOptions): Promise<string> {
     switch (opts.protocol) {
       case "bitcoin":
-        const addressIndex = this.settings.wallet.bitcoin.addressIndex;
+        const addressIndex = this.settings.accounts.bitcoin.addressIndex;
         return this.bitcoin.address(addressIndex);
       case "ethereum":
         return this.ethereum.address(opts.addressIndex);
@@ -125,7 +169,7 @@ export class Wallet {
   async balance(opts: WalletBalanceOptions): Promise<string> {
     switch (opts.protocol) {
       case "bitcoin":
-        const addressIndex = this.settings.wallet.bitcoin.addressIndex;
+        const addressIndex = this.settings.accounts.bitcoin.addressIndex;
         const utxos = await this.bitcoin.utxos(addressIndex);
         const balSats = utxos.confirmedUtxos.reduce((s, u) => s + u.value, 0);
         return satsToBtc(balSats);
@@ -156,8 +200,8 @@ export class Wallet {
   async send(opts: WalletSendOptions): Promise<TransactionResponse> {
     switch (opts.protocol) {
       case "bitcoin":
-        const addressIndex = this.settings.wallet.bitcoin.addressIndex;
-        const rotateAddress = this.settings.wallet.bitcoin.rotateAddress;
+        const addressIndex = this.settings.accounts.bitcoin.addressIndex;
+        const rotateAddress = this.settings.accounts.bitcoin.rotateAddress;
         const changeAddress = rotateAddress
           ? this.bitcoin.address(addressIndex + 1)
           : undefined;
@@ -168,12 +212,12 @@ export class Wallet {
           changeAddress,
         );
         if (rotateAddress) {
-          this.settings.wallet.bitcoin.addressIndex++;
+          this.settings.accounts.bitcoin.addressIndex++;
           this.settings
             .save()
             .catch((e) =>
               console.error(
-                `CRITICAL: failed to upate Bitcoin address index. Was ${addressIndex}, now ${this.settings.wallet.bitcoin.addressIndex}. ${e}`,
+                `CRITICAL: failed to upate Bitcoin address index. Was ${addressIndex}, now ${this.settings.accounts.bitcoin.addressIndex}. ${e}`,
               ),
             );
         }

@@ -46,7 +46,15 @@ app.post("/auth", async (req, res) => {
     .catch((e) => respond(req, res, StatusCodes.UNAUTHORIZED, null, e));
 });
 
-const WalletRequestBody = z.object({
+app.get("/wallet", async (req, res) => {
+  if (!WalletManager.isAuthenticated) {
+    respond(req, res, StatusCodes.UNAUTHORIZED, null, "user is not authenticated");
+    return;
+  }
+  respond(req, res, StatusCodes.OK, WalletManager.wallet!.accounts);
+})
+
+const WalletPostRequestBody = z.object({
   password: z.string().nonoptional(),
   mnemonic: z.string().nonoptional(),
 });
@@ -54,7 +62,7 @@ const WalletRequestBody = z.object({
 app.post("/wallet", async (req, res) => {
   let data;
   try {
-    data = WalletRequestBody.parse(req.body);
+    data = WalletPostRequestBody.parse(req.body);
   } catch (e) {
     respond(req, res, StatusCodes.BAD_REQUEST, null, e);
     return;
