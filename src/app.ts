@@ -6,10 +6,27 @@ import {
   WalletManager,
 } from "@wallet";
 import { Protocol, Protocols } from "./provider";
+import { getReasonPhrase, StatusCodes } from "http-status-codes";
+
+function respond(req: express.Request, res: express.Response, statusCode: number, data: unknown, error?: unknown) {
+  res.status(statusCode).json({
+    timestamp: new Date(),
+    route: req.path,
+    method: req.method,
+    status: getReasonPhrase(statusCode),
+    statusCode,
+    data,
+    error,
+  });
+}
 
 const app = express();
 
 app.use(express.json());
+
+if (process.env.NODE_ENV !== "production") {
+  app.set("json spaces", 2);
+}
 
 const ZProtocol = z.enum(Protocols);
 
@@ -20,13 +37,13 @@ app.post("/auth", async (req, res) => {
   try {
     body = AuthRequestBody.parse(req.body);
   } catch (e) {
-    res.status(400).send(e);
+    respond(req, res, StatusCodes.BAD_REQUEST, null, e);
     return;
   }
   await WalletManager.auth(body.password)
     .then(() => console.log("Authenticated"))
-    .then(() => res.send("OK"))
-    .catch((e) => res.status(401).send(e));
+    .then(() => respond(req, res, StatusCodes.OK, null))
+    .catch((e) => respond(req, res, StatusCodes.UNAUTHORIZED, null, e));
 });
 
 const WalletRequestBody = z.object({
@@ -39,11 +56,12 @@ app.post("/wallet", async (req, res) => {
   try {
     data = WalletRequestBody.parse(req.body);
   } catch (e) {
-    res.status(400).send(e);
+    respond(req, res, StatusCodes.BAD_REQUEST, null, e);
     return;
   }
-  await WalletManager.saveNew(data.mnemonic, data.password);
-  res.send("Saved new wallet");
+  await WalletManager.saveNew(data.mnemonic, data.password)
+    .then(() => respond(req, res, StatusCodes.CREATED, "Saved new wallet"))
+    .catch((e) => respond(req, res, StatusCodes.INTERNAL_SERVER_ERROR, null, e));
 });
 
 const AddressRequestQuery = z.object({
@@ -63,9 +81,9 @@ function walletAddressOptions(
   }
 }
 
-app.use("/address/:protocol", (_, res, next) => {
+app.use("/address/:protocol", (req, res, next) => {
   if (!WalletManager.isAuthenticated) {
-    res.status(401).send("Unauthorized");
+    respond(req, res, StatusCodes.UNAUTHORIZED, null, "user is not authenticated");
     return;
   }
   next();
@@ -76,13 +94,13 @@ app.get("/address/:protocol", async (req, res) => {
   try {
     protocol = ZProtocol.parse(req.params.protocol);
   } catch (e) {
-    res.status(400).send(e);
+    respond(req, res, StatusCodes.BAD_REQUEST, null, e);
     return;
   }
   const opts = walletAddressOptions(protocol, req.query);
   await WalletManager.wallet!.address(opts)
-    .then((a) => res.send(a))
-    .catch((e) => res.status(500).send(`Failed to get address: ${e}`));
+    .then((a) => respond(req, res, StatusCodes.OK, a))
+    .catch((e) => respond(req, res, StatusCodes.INTERNAL_SERVER_ERROR, null, `Failed to get address: ${e}`));
 });
 
 const BalanceRequestQuery = z.object({
@@ -103,9 +121,9 @@ function walletBalanceOptions(
   }
 }
 
-app.use("/balance/:protocol", (_, res, next) => {
+app.use("/balance/:protocol", (req, res, next) => {
   if (!WalletManager.isAuthenticated) {
-    res.status(401).send("Unauthorized");
+    respond(req, res, StatusCodes.UNAUTHORIZED, null, "user is not authenticated");
     return;
   }
   next();
@@ -116,13 +134,13 @@ app.get("/balance/:protocol", async (req, res) => {
   try {
     protocol = ZProtocol.parse(req.params.protocol);
   } catch (e) {
-    res.status(400).send(e);
+    respond(req, res, StatusCodes.BAD_REQUEST, null, e);
     return;
   }
   const opts = walletBalanceOptions(protocol, req.query);
   await WalletManager.wallet!.balance(opts)
-    .then((b) => res.send(b))
-    .catch((e) => res.status(500).send(`Failed to get balance: ${e}`));
+    .then((b) => respond(req, res, StatusCodes.OK, b))
+    .catch((e) => respond(req, res, StatusCodes.INTERNAL_SERVER_ERROR, null, `Failed to get balance: ${e}`));
 });
 
 const SendRequestBody = z.object({
@@ -137,9 +155,9 @@ const SendRequestBody = z.object({
   asset: z.string().optional(),
 });
 
-app.use("/send", (_, res, next) => {
+app.use("/send", (req, res, next) => {
   if (!WalletManager.isAuthenticated) {
-    res.status(401).send("Unauthorized");
+    respond(req, res, StatusCodes.UNAUTHORIZED, null, "user is not authenticated");
     return;
   }
   next();
@@ -150,12 +168,12 @@ app.post("/send", async (req, res) => {
   try {
     data = SendRequestBody.parse(req.body);
   } catch (e) {
-    res.status(400).send(e);
+    respond(req, res, StatusCodes.BAD_REQUEST, null, e);
     return;
   }
   await WalletManager.wallet!.send(data)
-    .then((ret) => res.json(ret))
-    .catch((e) => res.status(500).send(`Failed to send transaction: ${e}`));
+    .then((ret) => respond(req, res, StatusCodes.OK, ret))
+    .catch((e) => respond(req, res, StatusCodes.INTERNAL_SERVER_ERROR, null, e));
 });
 
 export default app;
