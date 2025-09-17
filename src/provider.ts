@@ -1,4 +1,4 @@
-export type Protocol = "ethereum" | "bitcoin" | "ripple" | "solana";
+export type Protocol = "ethereum" | "bitcoin" | "ripple" | "solana" | "stellar";
 
 export function providerRpcEndpoint(protocol: Protocol, network: string) {
   switch (protocol) {
@@ -30,6 +30,13 @@ export function providerRpcEndpoint(protocol: Protocol, network: string) {
           return "wss://s.devnet.rippletest.net:51233";
         case "mainnet":
           return "wss://xrplcluster.com";
+      }
+    case "stellar":
+      switch (network) {
+        case "mainnet":
+          return "https://horizon.stellar.lobstr.co";
+        case "testnet":
+          return "https://horizon-testnet.stellar.org";
       }
     default:
       throw new Error(`Unsupported protocol/network: ${protocol}/${network}`);

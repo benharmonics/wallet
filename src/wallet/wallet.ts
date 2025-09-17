@@ -4,10 +4,11 @@ import { WalletSettings } from "./settings";
 import { RippleWallet } from "./ripple";
 import { formatEther } from "ethers";
 import { satsToBtc } from "@utils/blockchain";
+import { StellarWallet } from "./stellar";
 
 export type BitcoinAddressOptions = { protocol: "bitcoin" };
 export type GenericAddressOptions = {
-  protocol: "ethereum" | "ripple";
+  protocol: "ethereum" | "ripple" | "stellar";
   addressIndex?: number;
   asset?: string;
 };
@@ -17,7 +18,7 @@ export type WalletAddressOptions =
 
 export type BitcoinBalanceOptions = { protocol: "bitcoin" };
 export type GenericBalanceOptions = {
-  protocol: "ethereum" | "ripple";
+  protocol: "ethereum" | "ripple" | "stellar";
   addressIndex?: number;
   asset?: string;
 };
@@ -31,7 +32,7 @@ export type BitcoinSendOptions = {
   destination: string;
 };
 export type GenericSendOptions = {
-  protocol: "ethereum" | "ripple";
+  protocol: "ethereum" | "ripple" | "stellar";
   amount: string;
   destination: string;
   addressIndex?: number;
@@ -50,6 +51,7 @@ export class Wallet {
   private bitcoin: BitcoinWallet;
   private ethereum: EthereumWallet;
   private ripple: RippleWallet;
+  private stellar: StellarWallet;
 
   private constructor(
     private settings: WalletSettings,
@@ -66,6 +68,10 @@ export class Wallet {
     this.ripple = new RippleWallet(
       settings.mnemonic,
       mainnet ? "mainnet" : "testnet",
+    );
+    this.stellar = new StellarWallet(
+      settings.mnemonic,
+      mainnet,
     );
   }
 
@@ -95,6 +101,8 @@ export class Wallet {
         return this.ethereum.address(opts.addressIndex);
       case "ripple":
         return this.ripple.address(opts.addressIndex);
+      case "stellar":
+        return this.stellar.pubKey(opts.addressIndex);
     }
   }
 
@@ -116,6 +124,10 @@ export class Wallet {
           return `${await this.ripple.balance(opts.addressIndex)}`;
         }
         throw new Error("Non-native token balances unimplemented for Ripple");
+      case "stellar":
+        const acc = await this.stellar.account(opts.addressIndex);
+        const native = acc.balances.find(b => b.asset_type === "native")!;
+        return native.balance;
     }
   }
 
@@ -164,6 +176,11 @@ export class Wallet {
           return typeof res.id === "string" ? res.id : `${res.id}`;
         }
         throw new Error("Non-native token balances unimplemented for Ripple");
+      case "stellar":
+        const _opts = { valueXlm: opts.amount, destination: opts.destination, asset: opts.asset };
+        const res = await this.stellar.send(_opts, opts.addressIndex);
+        console.log("Sent Stellar transaction:", res);
+        return res.hash;
     }
   }
 }

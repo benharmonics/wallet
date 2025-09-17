@@ -4,10 +4,12 @@ import { mnemonicToSeed } from "@scure/bip39";
 
 const bip32 = BIP32Factory(ecc);
 
+// https://github.com/satoshilabs/slips/blob/master/slip-0044.md
 export enum Bip44Coin {
   bitcoin = "0'",
   ethereum = "60'",
   ripple = "144'",
+  stellar = "148'",
   solana = "501'",
 }
 

@@ -1,5 +1,6 @@
 import { AppConfiguration } from "./config";
 import { Wallet } from "@wallet";
+// import { StellarWallet } from "./wallet/stellar";
 
 async function run(): Promise<Wallet> {
   const { mnemonicPath, walletDataPath, mainnet } = new AppConfiguration();
@@ -9,7 +10,7 @@ async function run(): Promise<Wallet> {
     mainnet,
     password: "password",
   });
-  const protocols = ["ethereum", "ripple", "bitcoin"] as const;
+  const protocols = ["ethereum", "ripple", "bitcoin", "stellar"] as const;
   protocols.forEach(async (protocol) => {
     const balance = await wallet.balance({ protocol });
     const address = await wallet.address({ protocol });
@@ -24,6 +25,8 @@ function main() {
   run()
     .then((w) => w.disconnect())
     .catch(console.error);
+  // const w = new StellarWallet(process.env.MNEMONIC!);
+
   // // ------------------ BTC tests ------------------
   // const btcWallet = new BitcoinWallet(
   //   settings.mnemonic,

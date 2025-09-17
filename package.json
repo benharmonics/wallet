@@ -28,6 +28,7 @@
   "dependencies": {
     "@scure/bip39": "^1.5.4",
     "@solana/kit": "^3.0.2",
+    "@stellar/stellar-sdk": "^14.1.1",
     "bip32": "^5.0.0-rc.0",
     "bitcoinjs-lib": "^6.1.7",
     "dotenv": "^16.4.7",
