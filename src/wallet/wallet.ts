@@ -295,22 +295,20 @@ export class WalletManager {
   private static readonly appConfiguration = new AppConfiguration();
   private static readonly logoutTimeout = 30 * 60 * 1000; // 30 minutes
   private static active = false;
+  private static authCheckCoroutine: ReturnType<typeof setInterval> | null =
+    null;
 
   // Delete static Wallet intermittently
   private static authCheckSetInterval() {
     if (WalletManager.active) return;
     WalletManager.active = true;
-    setInterval(() => {
+    WalletManager.authCheckCoroutine = setInterval(() => {
+      const now = new Date().getTime();
+      const lastAuth = WalletManager.lastAuth?.getTime();
       const authTimedOut =
-        !WalletManager.lastAuth ||
-        new Date().getTime() - WalletManager.lastAuth.getTime() >
-          WalletManager.logoutTimeout;
+        !lastAuth || now - lastAuth > WalletManager.logoutTimeout;
       if (authTimedOut && WalletManager.isAuthenticated) {
-        console.log(
-          `Logging out - last auth: ${WalletManager.lastAuth?.toLocaleString()}`,
-        );
-        wallet?.disconnect();
-        wallet = null;
+        WalletManager.logout();
       }
     }, 10 * 1000);
   }
@@ -349,5 +347,17 @@ export class WalletManager {
       password,
     });
     lastAuth = new Date();
+  }
+
+  static logout() {
+    console.log(
+      `Logging out - last auth: ${WalletManager.lastAuth?.toLocaleString()}`,
+    );
+    if (WalletManager.authCheckCoroutine) {
+      clearTimeout(WalletManager.authCheckCoroutine);
+      WalletManager.authCheckCoroutine = null;
+    }
+    wallet?.disconnect();
+    wallet = null;
   }
 }

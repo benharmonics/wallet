@@ -1,4 +1,4 @@
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
 import * as z from "zod";
 import {
   WalletAddressOptions,
@@ -27,35 +27,32 @@ function respond(
 }
 
 const app = express();
+const walletApi = express.Router();
 
-app.use(express.json());
-
-if (process.env.NODE_ENV !== "production") {
-  app.set("json spaces", 2);
-}
-
-app.use("/wallet", (req, res, next) => {
+// auth check
+walletApi.use((req, res, next) => {
   if (!WalletManager.isAuthenticated) {
-    respond(
-      req,
-      res,
-      StatusCodes.UNAUTHORIZED,
-      null,
-      "user is not authenticated",
-    );
+    respond(req, res, StatusCodes.UNAUTHORIZED, null, "not logged in");
     return;
   }
   next();
 });
 
+app.use(express.json());
+app.use("/wallet", walletApi);
+
+if (process.env.NODE_ENV !== "production") {
+  app.set("json spaces", 2);
+}
+
 const ZProtocol = z.enum(Protocols);
 
-const AuthRequestBody = z.object({ password: z.string() });
+const LoginRequestBody = z.object({ password: z.string() });
 
-app.post("/auth", async (req, res) => {
+app.post("/login", async (req, res) => {
   let body;
   try {
-    body = AuthRequestBody.parse(req.body);
+    body = LoginRequestBody.parse(req.body);
   } catch (e) {
     respond(req, res, StatusCodes.BAD_REQUEST, null, e);
     return;
@@ -65,6 +62,8 @@ app.post("/auth", async (req, res) => {
     .then(() => respond(req, res, StatusCodes.OK, null))
     .catch((e) => respond(req, res, StatusCodes.UNAUTHORIZED, null, e));
 });
+
+app.post("/logout", () => WalletManager.logout());
 
 const KeystorePostRequestBody = z.object({
   password: z.string().nonoptional(),
@@ -87,7 +86,7 @@ app.post("/keystore", async (req, res) => {
     );
 });
 
-app.get("/wallet", async (req, res) => {
+walletApi.get("/", async (req, res) => {
   respond(req, res, StatusCodes.OK, WalletManager.wallet!.accounts);
 });
 
@@ -97,7 +96,7 @@ const WalletPutRequestBody = z.object({
   addressIndex: z.number().int().gte(0).nonoptional(),
 });
 
-app.put("/wallet", async (req, res) => {
+walletApi.put("/", async (req, res) => {
   let data;
   try {
     data = WalletPutRequestBody.parse(req.body);
@@ -133,7 +132,7 @@ function walletAddressOptions(
   }
 }
 
-app.get("/wallet/address/:protocol", async (req, res) => {
+walletApi.get("/address/:protocol", async (req, res) => {
   let protocol;
   try {
     protocol = ZProtocol.parse(req.params.protocol);
@@ -179,7 +178,7 @@ function walletBalanceOptions(
   }
 }
 
-app.get("/wallet/balance/:protocol", async (req, res) => {
+walletApi.get("/balance/:protocol", async (req, res) => {
   let protocol;
   try {
     protocol = ZProtocol.parse(req.params.protocol);
@@ -219,7 +218,7 @@ const SendRequestBody = z.object({
   asset: z.string().optional(),
 });
 
-app.post("/wallet/send", async (req, res) => {
+walletApi.post("/send", async (req, res) => {
   let data;
   try {
     data = SendRequestBody.parse(req.body);
