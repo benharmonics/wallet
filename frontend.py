@@ -88,6 +88,13 @@ def protocol_and_address_index() -> tuple:
 
 
 def input_loop():
+    def protocol_and_address_index_and_asset_and_balance():
+        protocol, address_index = protocol_and_address_index()
+        asset = input("Asset? (default native token on chain) ") or None
+        address = get_address(protocol, address_index)
+        balance = get_balance(protocol, address_index, asset)
+        print(f"\nBalance: {balance} ({asset=}) - Address: {address}\n")
+        return protocol, address_index, asset, balance
     query = "Now what?\n\t1 Wallet\n\t2 Address\n\t3 Balance\n\t4 Send\n\t5 Keystore\n\t6 Exit\n> "
     match input(query).strip().lower():
         case "1" | "wallet":
@@ -96,18 +103,14 @@ def input_loop():
             protocol, address_index = protocol_and_address_index()
             pprint.pprint(get_address(protocol, address_index))
         case "3" | "balance":
-            protocol, address_index = protocol_and_address_index()
-            asset = input("Asset? (default native token on chain) ") or None
-            pprint.pprint(get_balance(protocol, address_index, asset))
+            _, _, _, balance = protocol_and_address_index_and_asset_and_balance()
+            pprint.pprint(balance)
         case "4" | "send":
-            protocol, address_index = protocol_and_address_index()
-            asset = input("Asset? (default native token on chain) ") or None
-            address = get_address(protocol, address_index)
-            balance = get_balance(protocol, address_index, asset)
-            print(f"\nBalance: {balance} ({asset=}) - Address: {address}\n")
+            protocol, address_index, asset, _ = protocol_and_address_index_and_asset_and_balance()
             try:
                 amount = float(input("Enter amount: "))
-            except ValueError:
+                assert amount > 0
+            except ValueError | AssertionError:
                 raise ValueError("Invalid amount")
             destination = input("Enter destination: ")
             pprint.pprint(send(protocol, destination, amount, address_index, asset))
@@ -128,8 +131,7 @@ def input_loop():
 
 
 def main():
-    password = getpass.getpass("Please login. Enter password: ")
-    login(password)
+    login(getpass.getpass("Please login. Enter password: "))
     print("Logged in.")
     input_loop()
     logout()
