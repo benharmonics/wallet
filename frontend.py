@@ -80,7 +80,7 @@ def protocol_and_address_index() -> tuple:
     if not protocol:
         raise ValueError("Protocol is required.")
     try:
-        address_index = int(input("Address index? (default 0) ") or 0)
+        address_index = int(input("Address index? (default: 0) ") or 0)
         assert address_index >= 0
     except ValueError | AssertionError:
         raise ValueError("Address index must be a non-negative integer")
@@ -88,13 +88,14 @@ def protocol_and_address_index() -> tuple:
 
 
 def input_loop():
-    def protocol_and_address_index_and_asset_and_balance():
+    def address_summary():
         protocol, address_index = protocol_and_address_index()
-        asset = input("Asset? (default native token on chain) ") or None
+        asset = input("Asset? (default: native token on chain) ") or None
         address = get_address(protocol, address_index)
         balance = get_balance(protocol, address_index, asset)
-        print(f"\nBalance: {balance} ({asset=}) - Address: {address}\n")
-        return protocol, address_index, asset, balance
+        print(f"\nBalance: {balance} ({asset=}). Address: {address}\n")
+        return protocol, address_index, asset
+
     query = "Now what?\n\t1 Wallet\n\t2 Address\n\t3 Balance\n\t4 Send\n\t5 Keystore\n\t6 Exit\n> "
     match input(query).strip().lower():
         case "1" | "wallet":
@@ -103,10 +104,9 @@ def input_loop():
             protocol, address_index = protocol_and_address_index()
             pprint.pprint(get_address(protocol, address_index))
         case "3" | "balance":
-            _, _, _, balance = protocol_and_address_index_and_asset_and_balance()
-            pprint.pprint(balance)
+            address_summary()
         case "4" | "send":
-            protocol, address_index, asset, _ = protocol_and_address_index_and_asset_and_balance()
+            protocol, address_index, asset = address_summary()
             try:
                 amount = float(input("Enter amount: "))
                 assert amount > 0
