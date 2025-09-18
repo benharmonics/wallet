@@ -53,12 +53,37 @@ def get_balance(protocol: str, address_index: int, asset: str | None = None) -> 
     return res.json()["data"]
 
 
+def send(
+    protocol: str,
+    destination: str,
+    amount: float,
+    address_index: int,
+    asset: str | None = None,
+) -> dict:
+    res = requests.post(
+        f"{BASE_URL}/wallet/send",
+        json={
+            "protocol": protocol,
+            "destination": destination,
+            "amount": amount,
+            "address_index": address_index,
+            "asset": asset,
+        },
+    )
+    res.raise_for_status()
+    return res.json()["data"]
+
+
 def protocol_and_address_index() -> tuple:
     # TODO: what protocols are available?
     protocol = input("Protocol? ")
     if not protocol:
         raise ValueError("Protocol is required.")
-    address_index = int(input("Address index? (default 0) ") or 0)
+    try:
+        address_index = int(input("Address index? (default 0) ") or 0)
+        assert address_index >= 0
+    except ValueError | AssertionError:
+        raise ValueError("Address index must be a non-negative integer")
     return protocol, address_index
 
 
@@ -75,8 +100,17 @@ def input_loop():
             asset = input("Asset? (default native token on chain) ") or None
             pprint.pprint(get_balance(protocol, address_index, asset))
         case "4" | "send":
-            # TODO
-            print("Not implemented.")
+            protocol, address_index = protocol_and_address_index()
+            asset = input("Asset? (default native token on chain) ") or None
+            address = get_address(protocol, address_index)
+            balance = get_balance(protocol, address_index, asset)
+            print(f"\nBalance: {balance} ({asset=}) - Address: {address}\n")
+            try:
+                amount = float(input("Enter amount: "))
+            except ValueError:
+                raise ValueError("Invalid amount")
+            destination = input("Enter destination: ")
+            pprint.pprint(send(protocol, destination, amount, address_index, asset))
         case "5" | "keystore":
             print("Really update your keystore?")
             print(
