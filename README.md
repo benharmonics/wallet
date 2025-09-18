@@ -2,6 +2,22 @@
 
 A basic digital wallet with a RESTful API - encrypt and save wallet secrets, derive new keys/addresses, transfer tokens and assets, create and deploy smart contracts, etc.
 
+## Running
+
+Build the application and start it in Docker with
+
+```shell
+docker compose up
+```
+
+If you are a developer, you can also run it with `tsx`, i.e.
+
+```shell
+npx tsx src/index.ts
+# or equivalently
+npm run dev
+```
+
 ## Wallet API
 
 An HTTP-based API is exposed to facilitate interactions with the blockchain.
@@ -13,57 +29,16 @@ Available protocols (blockchains) are:
 - stellar
 - ripple
 
-### Routes
+See the `frontend.py` script for examples of using each API route. Alternatively, just run the script to interact with the wallet while it's running.
 
-#### GET /auth
+## Configuration
 
-Authenticate with the server.
+Environment variables for the application can be entered in the file `.env`. The available configuration options are:
 
-**Request body**
-
-```json
-{
-    "password": "<your password>"
-}
-```
-
-#### GET /address/:protocol
-
-Get your address on a given blockchain protocol (e.g. "ethereum", "bitcoin", etc.).
-
-**Query parameters**
-
-- addressIndex - an integer from 0 to 2^31 - 1 to derive new addresses (defaults to 0)
-
-#### GET /balance/:protocol
-
-Get your balance on a given blockchain protocol (e.g. "ethereum", "bitcoin", etc.).
-
-**Query parameters**
-
-- addressIndex - an integer from 0 to 2^31 - 1 to derive new addresses (defaults to 0)
-- asset - a non-native asset available for the given protocol
-
-#### POST /send
-
-Send some of a given token or asset.
-
-**Request body**
-
-```json
-{
-    "protocol": "<some protocol>",
-    "destination": "<some address>",
-    "amount": 0.02
-}
-```
-
-## Configuration and Testing
-
-The static configuration for the application should be entered in the environment file `.env`. The available configuration options are:
-
-- PORT - the exposed port at which you can access the Wallet API
-- MAINNET - if set to `false`, all blockchain interactions will be testnet-only
+- MAINNET - if set to `false`, all blockchain interactions will be testnet-only and some other configuration changes will be made
+- CONFIG_DIR - sets the directory into which configuration files will be saved (by default set to `.data`)
+- RECOVERY_PHRASE_FILE - the file which stores your encrypted recovery phrase at rest
+- WALLET_DATA_FILE - the file which stores metadata associated with your wallet
 
 ## Security
 
