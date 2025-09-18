@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from "express";
+import express from "express";
 import * as z from "zod";
 import {
   WalletAddressOptions,
@@ -63,7 +63,10 @@ app.post("/login", async (req, res) => {
     .catch((e) => respond(req, res, StatusCodes.UNAUTHORIZED, null, e));
 });
 
-app.post("/logout", () => WalletManager.logout());
+app.post("/logout", (req, res) => {
+  WalletManager.logout();
+  respond(req, res, StatusCodes.OK, null);
+});
 
 const KeystorePostRequestBody = z.object({
   password: z.string().nonoptional(),
