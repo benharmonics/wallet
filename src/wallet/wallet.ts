@@ -7,6 +7,7 @@ import { RippleWallet } from "./ripple";
 import { StellarWallet } from "./stellar";
 import { AppConfiguration } from "../config";
 import { Protocol } from "src/provider";
+import { fileExists } from "@utils/fs";
 
 export type BitcoinAddressOptions = { protocol: "bitcoin" };
 export type GenericAddressOptions = {
@@ -323,6 +324,11 @@ export class WalletManager {
 
   static get isAuthenticated(): boolean {
     return wallet !== null;
+  }
+
+  static async keystoreExists(): Promise<boolean> {
+    const { mnemonicPath } = WalletManager.appConfiguration;
+    return fileExists(mnemonicPath);
   }
 
   static async saveNew(mnemonic: string, password: string) {

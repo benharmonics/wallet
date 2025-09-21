@@ -68,6 +68,10 @@ app.post("/logout", (req, res) => {
   respond(req, res, StatusCodes.OK, null);
 });
 
+app.get("/keystore", async (req, res) => {
+  respond(req, res, StatusCodes.OK, WalletManager.keystoreExists());
+});
+
 const KeystorePostRequestBody = z.object({
   password: z.string().nonoptional(),
   mnemonic: z.string().nonoptional(),

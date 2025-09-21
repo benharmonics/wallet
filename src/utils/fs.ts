@@ -6,7 +6,7 @@ import {
   type BinaryLike,
   type ScryptOptions,
 } from "node:crypto";
-import { promises as fs } from "node:fs";
+import { constants, promises as fs } from "node:fs";
 import { dirname } from "node:path";
 
 /** Strongly-typed Promise wrapper around callback-based crypto.scrypt */
@@ -142,6 +142,13 @@ export async function writeFileAtomic(path: string, data: string) {
 export async function readJsonFile<TData>(path: string): Promise<TData> {
   const raw = await fs.readFile(path, "utf8");
   return JSON.parse(raw) as TData;
+}
+
+export async function fileExists(path: string): Promise<boolean> {
+  return fs
+    .access(path, constants.F_OK)
+    .then(() => true)
+    .catch(() => false);
 }
 
 export async function encryptToFile(
