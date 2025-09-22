@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from "vue";
+import CopyIcon from "@/assets/copy.svg";
 
 const blockchains = ["ethereum", "bitcoin", "ripple", "stellar"];
 
@@ -20,10 +21,18 @@ onMounted(async () => {
 
 watch(currentBlockchain, async (newBlockchain) => {
   // TODO: default to account other than first
-  addressIndex.value = 0; // triggers watch of addressIndex
+  addressIndex.value = 0;
+  balance.value = null;
+  address.value = null;
+  const addressRes = await fetch(`/api/wallet/address/${newBlockchain}?addressIndex=${addressIndex.value}`);
+  address.value = (await addressRes.json()).data;
+  const balanceRes = await fetch(`/api/wallet/balance/${newBlockchain}?addressIndex=${addressIndex.value}`);
+  balance.value = (await balanceRes.json()).data;
 });
 
 watch(addressIndex, async (newAddressIndex) => {
+  balance.value = null;
+  address.value = null;
   const addressRes = await fetch(`/api/wallet/address/${currentBlockchain.value}?addressIndex=${newAddressIndex}`);
   address.value = (await addressRes.json()).data;
   const balanceRes = await fetch(`/api/wallet/balance/${currentBlockchain.value}?addressIndex=${newAddressIndex}`);
@@ -37,6 +46,12 @@ const decrementAddressIndex = () => {
 const onSelectBlockchain = (bc) => currentBlockchain.value = bc;
 
 const capitalize = s => !s ? "" : s[0].toUpperCase() + s.slice(1);
+
+function copyToClipboard(elementId) {
+  const element = document.getElementById(elementId);
+  navigator.clipboard.writeText(element.value);
+  alert("Copied to clipboard"); // TODO: temporary alert a la toast
+}
 </script>
 
 <template>
@@ -59,7 +74,10 @@ const capitalize = s => !s ? "" : s[0].toUpperCase() + s.slice(1);
               Address
             </td>
             <td>
-              {{ address }}
+              <span id="address-table-row">
+                <span id="address-text">{{ address }}</span>
+                <span id="copy-icon-container" @click="copyToClipboard('address-text')"><img :src="CopyIcon" alt="Copy" /></span>
+              </span>
             </td>
           </tr>
           <tr>
@@ -70,7 +88,7 @@ const capitalize = s => !s ? "" : s[0].toUpperCase() + s.slice(1);
               {{ balance }}
             </td>
           </tr>
-          <tr>
+          <tr v-if="currentBlockchain !== 'bitcoin'">
             <td>
               Address Index
             </td>
@@ -87,20 +105,39 @@ const capitalize = s => !s ? "" : s[0].toUpperCase() + s.slice(1);
 </template>
 
 <style scoped>
-#wallet-page {
-  display: flex;
-}
+#wallet-page { display: flex }
 
-#page-content {
-  padding: 0 0 0 2rem;
-}
+#page-content { padding: 0 0 0 2rem }
+
+h1 { font-weight: bold }
 
 #address-summary-table {
   border-spacing: 15px 0;
-  background: #2e2e2e;
+  background: var(--color-background-mute);
   border-radius: 1rem;
   padding: 1rem;
-  color: white;
+}
+
+#address-table-row {
+  display: flex;
+  align-items: center;
+}
+
+#address-text {
+  display: inline-block;
+  max-width: 24rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#copy-icon-container {
+  margin: 0 0 0 0.5rem;
+  display: inline-block;
+  width: 1em;
+}
+
+#copy-icon-container:hover {
+  cursor: pointer;
 }
 
 .dropdown {
@@ -110,7 +147,6 @@ const capitalize = s => !s ? "" : s[0].toUpperCase() + s.slice(1);
 
 .dropdown-btn {
   font-size: 14px;
-  font-weight: bold;
   padding: 0.5rem 1rem;
 }
 
@@ -123,7 +159,6 @@ const capitalize = s => !s ? "" : s[0].toUpperCase() + s.slice(1);
   text-align: left;
   display: block;
   font-size: 16px;
-  font-weight: bold;
   width: 100%;
 }
 
