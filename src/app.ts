@@ -68,8 +68,17 @@ app.post("/logout", (req, res) => {
   respond(req, res, StatusCodes.OK, null);
 });
 
+app.get("/whoami", (req, res) => {
+  const data = { loggedIn: WalletManager.isAuthenticated };
+  respond(req, res, StatusCodes.OK, data);
+});
+
 app.get("/keystore", async (req, res) => {
-  respond(req, res, StatusCodes.OK, WalletManager.keystoreExists());
+  const data = {
+    isMainnet: WalletManager.isMainnet,
+    keystoreExists: await WalletManager.keystoreExists(),
+  };
+  respond(req, res, StatusCodes.OK, data);
 });
 
 const KeystorePostRequestBody = z.object({

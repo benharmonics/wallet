@@ -1,7 +1,6 @@
 import ECPairFactory, { ECPairInterface } from "ecpair";
 import * as ecc from "tiny-secp256k1";
 import * as bitcoin from "bitcoinjs-lib";
-import { providerRpcEndpoint, Protocol } from "../provider";
 import bip44, { Bip44Coin } from "../bip44";
 import {
   AddressUtxoResult,
@@ -65,7 +64,6 @@ const signer = (ecpair: ECPairInterface): bitcoin.Signer => ({
 
 export class BitcoinWallet {
   private readonly mnemonic: string;
-  private readonly protocol: Protocol = "bitcoin";
   private readonly network: bitcoin.networks.Network;
 
   constructor(mnemonic: string, network: "testnet" | "mainnet" = "testnet") {
@@ -179,36 +177,8 @@ export class BitcoinWallet {
     console.log(
       `Bitcoin: sending ${satsToBtc(Number(amount))} BTC from ${utxos.address} to ${destination} with fee ${satsToBtc(Number(fee))}`,
     );
-    console.log("Bitcoin: transacton hex:", txHex);
+    console.log("Bitcoin: transaction hex:", txHex);
 
     return broadcastTx(txHex, { mainnet: this.mainnet });
   }
 }
-
-// // ------------------ BTC tests ------------------
-// const btcWallet = new BitcoinWallet(
-//   settings.mnemonic,
-//   mainnet ? "mainnet" : "testnet",
-// );
-// const iAddress = settings.wallet.bitcoin.addressIndex;
-// const iChange = iAddress + 1;
-// const iTo = 100;
-//
-// console.log(
-//   `UTXO(s) on wallet ${iAddress}:`,
-//   await btcWallet.utxos(iAddress),
-// );
-// console.log(
-//   `UTXO(s) on wallet ${iTo} (arbitrary destination wallet):`,
-//   await btcWallet.utxos(iTo),
-// );
-//
-// // Send transaction
-// const [to, change] = await Promise.all([
-//   btcWallet.address(iTo),
-//   btcWallet.address(iChange),
-// ]);
-// const amount = "0.0007";
-// const txId = await btcWallet.send(amount, to, iAddress, change);
-// settings.wallet.bitcoin.addressIndex++;
-// console.log(`Sent ${amount} BTC to ${to}: ${txId}`);

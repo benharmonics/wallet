@@ -20,6 +20,6 @@ export class AppConfiguration {
 }
 
 function parseBoolOrNull(s?: string): boolean | null {
-  if (s === null || s === undefined) return null;
+  if (s === null || s === undefined || s.length === 0) return null;
   return ["true", "t", "1"].includes(s.toLowerCase());
 }

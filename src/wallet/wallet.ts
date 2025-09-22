@@ -293,7 +293,7 @@ let wallet: Wallet | null = null;
 let lastAuth: Date | null = null;
 
 export class WalletManager {
-  private static readonly appConfiguration = new AppConfiguration();
+  static #appConfiguration = new AppConfiguration();
   private static readonly logoutTimeout = 30 * 60 * 1000; // 30 minutes
   private static active = false;
   private static authCheckCoroutine: ReturnType<typeof setInterval> | null =
@@ -326,14 +326,22 @@ export class WalletManager {
     return wallet !== null;
   }
 
+  static get isMainnet(): boolean {
+    return WalletManager.#appConfiguration.mainnet;
+  }
+
+  static set appConfiguration(cfg: AppConfiguration) {
+    WalletManager.#appConfiguration = cfg;
+  }
+
   static async keystoreExists(): Promise<boolean> {
-    const { mnemonicPath } = WalletManager.appConfiguration;
+    const { mnemonicPath } = WalletManager.#appConfiguration;
     return fileExists(mnemonicPath);
   }
 
   static async saveNew(mnemonic: string, password: string) {
     const { mnemonicPath, walletDataPath, mainnet } =
-      WalletManager.appConfiguration;
+      WalletManager.#appConfiguration;
     wallet = await Wallet.saveNew(mnemonic, {
       mnemonicPath,
       walletDataPath,
@@ -345,7 +353,7 @@ export class WalletManager {
   static async auth(password: string) {
     WalletManager.authCheckSetInterval();
     const { mnemonicPath, walletDataPath, mainnet } =
-      WalletManager.appConfiguration;
+      WalletManager.#appConfiguration;
     wallet = await Wallet.loadFromDisk({
       mnemonicPath,
       walletDataPath,
