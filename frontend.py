@@ -66,7 +66,7 @@ def send(
             "protocol": protocol,
             "destination": destination,
             "amount": amount,
-            "address_index": address_index,
+            "addressIndex": address_index,
             "asset": asset,
         },
     )
