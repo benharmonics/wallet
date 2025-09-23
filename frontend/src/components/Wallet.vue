@@ -20,19 +20,19 @@ const amount = ref<number | null>(null)
 const destination = ref<string | null>(null)
 const asset = ref<string | null>(null)
 
+async function updateAddressAndBalance(blockchain: string, addressIdx: number) {
+  const addressRes = await fetch(`/api/wallet/address/${blockchain}?addressIndex=${addressIdx}`)
+  address.value = (await addressRes.json()).data
+  const balanceRes = await fetch(`/api/wallet/balance/${blockchain}?addressIndex=${addressIdx}`)
+  balance.value = (await balanceRes.json()).data
+}
+
 onMounted(async () => {
   const info = await fetch('/api/info')
   // TODO: these don't show up in a consistent order b/c of Object.keys
   blockchains.value = Object.keys((await info.json()).data.blockchains)
   currentBlockchain.value = blockchains.value[0]
-  const addressRes = await fetch(
-    `/api/wallet/address/${currentBlockchain.value}?addressIndex=${addressIndex.value}`,
-  )
-  address.value = (await addressRes.json()).data
-  const balanceRes = await fetch(
-    `/api/wallet/balance/${currentBlockchain.value}?addressIndex=${addressIndex.value}`,
-  )
-  balance.value = (await balanceRes.json()).data
+  await updateAddressAndBalance(currentBlockchain.value, addressIndex.value)
 })
 
 watch(currentBlockchain, async (newBlockchain) => {
@@ -41,28 +41,14 @@ watch(currentBlockchain, async (newBlockchain) => {
   balance.value = null
   address.value = null
   transactionMenuOpen.value = false
-  const addressRes = await fetch(
-    `/api/wallet/address/${newBlockchain}?addressIndex=${addressIndex.value}`,
-  )
-  address.value = (await addressRes.json()).data
-  const balanceRes = await fetch(
-    `/api/wallet/balance/${newBlockchain}?addressIndex=${addressIndex.value}`,
-  )
-  balance.value = (await balanceRes.json()).data
+  await updateAddressAndBalance(newBlockchain, addressIndex.value)
 })
 
 watch(addressIndex, async (newAddressIndex) => {
   balance.value = null
   address.value = null
   transactionMenuOpen.value = false
-  const addressRes = await fetch(
-    `/api/wallet/address/${currentBlockchain.value}?addressIndex=${newAddressIndex}`,
-  )
-  address.value = (await addressRes.json()).data
-  const balanceRes = await fetch(
-    `/api/wallet/balance/${currentBlockchain.value}?addressIndex=${newAddressIndex}`,
-  )
-  balance.value = (await balanceRes.json()).data
+  await updateAddressAndBalance(currentBlockchain.value, newAddressIndex)
 })
 
 const incrementAddressIndex = () => addressIndex.value++
@@ -99,14 +85,15 @@ async function onSubmitTransaction() {
     throw new Error(`Failed to submit transaction: ${JSON.stringify(json.error)}`)
   }
   const data = json.data
-  alert(
-    `Submitted transaction. Response:\n\tTransaction hash: ${data.txHash}\n\tAmount: ${data.amount}\n\tAsset: ${data.asset}`,
-  )
+
   destination.value = null
   amount.value = null
   asset.value = null
   transactionMenuOpen.value = false
   transactionSubmitted.value = false
+  alert(
+    `Submitted transaction. Response:\n\tTransaction hash: ${data.txHash}\n\tAmount: ${data.amount}\n\tAsset: ${data.asset}`,
+  )
 }
 </script>
 
@@ -131,7 +118,7 @@ async function onSubmitTransaction() {
             <td>Address</td>
             <td>
               <span id="address-table-row">
-                <span id="address-text">{{ address }}</span>
+                <span id="address-text">{{ address ?? 'Loading…' }}</span>
                 <span class="small-icon-container" @click="copyToClipboard('address-text')">
                   <img :src="CopyIcon" alt="Copy" />
                 </span>
@@ -141,7 +128,7 @@ async function onSubmitTransaction() {
           <tr>
             <td>Balance</td>
             <td>
-              {{ balance }}
+              {{ balance ?? 'Loading…' }}
             </td>
           </tr>
           <tr v-if="currentBlockchain !== 'bitcoin'">
@@ -185,7 +172,7 @@ async function onSubmitTransaction() {
           />
           <div id="transaction-menu-bottom-row">
             <button type="submit" class="normal-button" v-bind:disabled="transactionSubmitted">
-              {{ transactionSubmitted ? 'Submitting...' : 'Submit' }}
+              {{ transactionSubmitted ? 'Submitting…' : 'Submit' }}
             </button>
           </div>
         </form>
@@ -203,6 +190,7 @@ async function onSubmitTransaction() {
 #page-content {
   display: grid;
   gap: 10px;
+  min-width: 40rem;
 }
 
 h1 {
