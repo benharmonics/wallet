@@ -325,25 +325,24 @@ export class Wallet {
   }
 }
 
-let wallet: Wallet | null = null;
-let lastAuth: Date | null = null;
-
 export class WalletManager {
   static #appConfiguration = new AppConfiguration();
+  static #wallet: Wallet | null = null;
+  static #lastAuth: Date | null = null;
   private static readonly logoutTimeout = 30 * 60 * 1000; // 30 minutes
   private static authCheckCoroutine: ReturnType<typeof setInterval> | null =
     null;
 
   static get wallet(): Wallet | null {
-    return wallet;
+    return WalletManager.#wallet;
   }
 
   static get lastAuth(): Date | null {
-    return lastAuth;
+    return WalletManager.#lastAuth;
   }
 
   static get isAuthenticated(): boolean {
-    return wallet !== null;
+    return WalletManager.#wallet !== null;
   }
 
   static get isMainnet(): boolean {
@@ -353,7 +352,7 @@ export class WalletManager {
   static get info() {
     return {
       mainnet: WalletManager.#appConfiguration.mainnet,
-      lastAuth,
+      lastAuth: WalletManager.#lastAuth,
       logoutTimeout: `${WalletManager.logoutTimeout / (60 * 1000)}m`,
       blockchains: {
         bitcoin: { nativeToken: "BTC", tokens: ["BTC"] },
@@ -393,7 +392,7 @@ export class WalletManager {
   static async saveNew(mnemonic: string, password: string) {
     const { mnemonicPath, walletDataPath, mainnet } =
       WalletManager.#appConfiguration;
-    wallet = await Wallet.saveNew(mnemonic, {
+    WalletManager.#wallet = await Wallet.saveNew(mnemonic, {
       mnemonicPath,
       walletDataPath,
       mainnet,
@@ -405,13 +404,13 @@ export class WalletManager {
     WalletManager.authCheckSetInterval();
     const { mnemonicPath, walletDataPath, mainnet } =
       WalletManager.#appConfiguration;
-    wallet = await Wallet.loadFromDisk({
+    WalletManager.#wallet = await Wallet.loadFromDisk({
       mnemonicPath,
       walletDataPath,
       mainnet,
       password,
     });
-    lastAuth = new Date();
+    WalletManager.#lastAuth = new Date();
   }
 
   static logout() {
@@ -422,7 +421,7 @@ export class WalletManager {
       clearTimeout(WalletManager.authCheckCoroutine);
       WalletManager.authCheckCoroutine = null;
     }
-    wallet?.disconnect();
-    wallet = null;
+    WalletManager.#wallet?.disconnect();
+    WalletManager.#wallet = null;
   }
 }
