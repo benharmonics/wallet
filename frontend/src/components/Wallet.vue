@@ -3,10 +3,10 @@ import { ref, watch, onMounted } from 'vue'
 import CopyIcon from '@/assets/copy.svg'
 import CloseIcon from '@/assets/close.svg'
 
-const blockchains = ['ethereum', 'bitcoin', 'solana', 'ripple', 'stellar']
+const blockchains = ref([])
 
 // independent variables
-const currentBlockchain = ref(blockchains[0])
+const currentBlockchain = ref<string | null>(null)
 const addressIndex = ref(0)
 
 // dependent variables
@@ -15,12 +15,16 @@ const balance = ref<string | null>(null)
 
 // transaction menu
 const transactionMenuOpen = ref(false)
-const transactionSubmitted = ref(false);
+const transactionSubmitted = ref(false)
 const amount = ref<number | null>(null)
 const destination = ref<string | null>(null)
 const asset = ref<string | null>(null)
 
 onMounted(async () => {
+  const info = await fetch('/api/info')
+  // TODO: these don't show up in a consistent order b/c of Object.keys
+  blockchains.value = Object.keys((await info.json()).data.blockchains)
+  currentBlockchain.value = blockchains.value[0]
   const addressRes = await fetch(
     `/api/wallet/address/${currentBlockchain.value}?addressIndex=${addressIndex.value}`,
   )
@@ -77,7 +81,7 @@ function copyToClipboard(elementId) {
 const onSelectBlockchain = (bc) => (currentBlockchain.value = bc)
 
 async function onSubmitTransaction() {
-  transactionSubmitted.value = true;
+  transactionSubmitted.value = true
   const res = await fetch('/api/wallet/send', {
     method: 'POST',
     credentials: 'include',
@@ -102,7 +106,7 @@ async function onSubmitTransaction() {
   amount.value = null
   asset.value = null
   transactionMenuOpen.value = false
-  transactionSubmitted.value = false;
+  transactionSubmitted.value = false
 }
 </script>
 
@@ -128,10 +132,7 @@ async function onSubmitTransaction() {
             <td>
               <span id="address-table-row">
                 <span id="address-text">{{ address }}</span>
-                <span
-                  class="small-icon-container"
-                  @click="copyToClipboard('address-text')"
-                >
+                <span class="small-icon-container" @click="copyToClipboard('address-text')">
                   <img :src="CopyIcon" alt="Copy" />
                 </span>
               </span>
@@ -184,7 +185,7 @@ async function onSubmitTransaction() {
           />
           <div id="transaction-menu-bottom-row">
             <button type="submit" class="normal-button" v-bind:disabled="transactionSubmitted">
-              {{ transactionSubmitted ? "Submitting..." : "Submit" }}
+              {{ transactionSubmitted ? 'Submitting...' : 'Submit' }}
             </button>
           </div>
         </form>
