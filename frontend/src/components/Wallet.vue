@@ -3,7 +3,7 @@ import { ref, watch, onMounted } from 'vue'
 import CopyIcon from '@/assets/copy.svg'
 import CloseIcon from '@/assets/close.svg'
 
-const blockchains = ['ethereum', 'bitcoin', 'ripple', 'stellar']
+const blockchains = ['ethereum', 'bitcoin', 'solana', 'ripple', 'stellar']
 
 // independent variables
 const currentBlockchain = ref(blockchains[0])

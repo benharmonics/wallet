@@ -182,6 +182,8 @@ export class Wallet {
         return this.ripple.address(opts.addressIndex);
       case "stellar":
         return this.stellar.pubKey(opts.addressIndex);
+      case "solana":
+        return this.solana.address(opts.addressIndex);
     }
   }
 
