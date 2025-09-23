@@ -48,6 +48,24 @@ if (process.env.NODE_ENV !== "production") {
 
 const ZProtocol = z.enum(Protocols);
 
+function parseProtocolOrRespond400(
+  req: express.Request,
+  res: express.Response,
+): Protocol | null {
+  try {
+    return ZProtocol.parse(req.params.protocol);
+  } catch (e) {
+    respond(
+      req,
+      res,
+      StatusCodes.BAD_REQUEST,
+      null,
+      `expected protocol to be one of ${Protocols}`,
+    );
+    return null;
+  }
+}
+
 const LoginRequestBody = z.object({ password: z.string() });
 
 app.post("/login", async (req, res) => {
@@ -72,6 +90,17 @@ app.post("/logout", (req, res) => {
 app.get("/whoami", (req, res) => {
   const data = { loggedIn: WalletManager.isAuthenticated };
   respond(req, res, StatusCodes.OK, data);
+});
+
+app.get("/info", async (req, res) => {
+  respond(req, res, StatusCodes.OK, WalletManager.info);
+});
+
+app.get("/info/:protocol", async (req, res) => {
+  const protocol = parseProtocolOrRespond400(req, res);
+  if (!protocol) return;
+  const info = WalletManager.info.blockchains[protocol];
+  respond(req, res, StatusCodes.OK, info);
 });
 
 app.get("/keystore", async (req, res) => {
@@ -150,19 +179,8 @@ function walletAddressOptions(
 }
 
 walletApi.get("/address/:protocol", async (req, res) => {
-  let protocol;
-  try {
-    protocol = ZProtocol.parse(req.params.protocol);
-  } catch (_) {
-    respond(
-      req,
-      res,
-      StatusCodes.BAD_REQUEST,
-      null,
-      `expected protocol to be one of ${Protocols}`,
-    );
-    return;
-  }
+  const protocol = parseProtocolOrRespond400(req, res);
+  if (!protocol) return;
   const opts = walletAddressOptions(protocol, req.query);
   await WalletManager.wallet!.address(opts)
     .then((a) => respond(req, res, StatusCodes.OK, a))
@@ -196,19 +214,8 @@ function walletBalanceOptions(
 }
 
 walletApi.get("/balance/:protocol", async (req, res) => {
-  let protocol;
-  try {
-    protocol = ZProtocol.parse(req.params.protocol);
-  } catch (e) {
-    respond(
-      req,
-      res,
-      StatusCodes.BAD_REQUEST,
-      null,
-      `expected protocol to be one of ${Protocols}`,
-    );
-    return;
-  }
+  const protocol = parseProtocolOrRespond400(req, res);
+  if (!protocol) return;
   const opts = walletBalanceOptions(protocol, req.query);
   await WalletManager.wallet!.balance(opts)
     .then((b) => respond(req, res, StatusCodes.OK, b))

@@ -241,7 +241,7 @@ export class Wallet {
           this.settings
             .save()
             .catch((e) =>
-              console.error(
+              console.log(
                 `CRITICAL: failed to upate Bitcoin address index. Was ${addressIndex}, now ${this.settings.accounts.bitcoin.addressIndex}. ${e}`,
               ),
             );
@@ -331,24 +331,8 @@ let lastAuth: Date | null = null;
 export class WalletManager {
   static #appConfiguration = new AppConfiguration();
   private static readonly logoutTimeout = 30 * 60 * 1000; // 30 minutes
-  private static active = false;
   private static authCheckCoroutine: ReturnType<typeof setInterval> | null =
     null;
-
-  // Delete static Wallet intermittently
-  private static authCheckSetInterval() {
-    if (WalletManager.active) return;
-    WalletManager.active = true;
-    WalletManager.authCheckCoroutine = setInterval(() => {
-      const now = new Date().getTime();
-      const lastAuth = WalletManager.lastAuth?.getTime();
-      const authTimedOut =
-        !lastAuth || now - lastAuth > WalletManager.logoutTimeout;
-      if (authTimedOut && WalletManager.isAuthenticated) {
-        WalletManager.logout();
-      }
-    }, 10 * 1000);
-  }
 
   static get wallet(): Wallet | null {
     return wallet;
@@ -366,8 +350,39 @@ export class WalletManager {
     return WalletManager.#appConfiguration.mainnet;
   }
 
+  static get info() {
+    return {
+      mainnet: WalletManager.#appConfiguration.mainnet,
+      lastAuth,
+      logoutTimeout: `${WalletManager.logoutTimeout / (60 * 1000)}m`,
+      blockchains: {
+        bitcoin: { nativeToken: "BTC", tokens: ["BTC"] },
+        ethereum: {
+          nativeToken: EthereumWallet.nativeToken,
+          tokens: EthereumWallet.allTokens,
+        },
+        solana: { nativeToken: "SOL", tokens: ["SOL"] },
+        stellar: { nativeToken: "XLM", tokens: ["XLM"] },
+        ripple: { nativeToken: "XRP", tokens: ["XRP"] },
+      },
+    };
+  }
+
   static set appConfiguration(cfg: AppConfiguration) {
     WalletManager.#appConfiguration = cfg;
+  }
+
+  // Delete static Wallet intermittently
+  private static authCheckSetInterval() {
+    WalletManager.authCheckCoroutine ??= setInterval(() => {
+      const now = new Date().getTime();
+      const lastAuth = WalletManager.lastAuth?.getTime();
+      const authTimedOut =
+        !lastAuth || now - lastAuth > WalletManager.logoutTimeout;
+      if (authTimedOut && WalletManager.isAuthenticated) {
+        WalletManager.logout();
+      }
+    }, 10 * 1000);
   }
 
   static async keystoreExists(): Promise<boolean> {

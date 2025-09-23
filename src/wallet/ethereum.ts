@@ -48,8 +48,16 @@ export class EthereumWallet {
     this.mnemonic = mnemonic;
   }
 
+  static get nativeToken(): string {
+    return "ETH";
+  }
+
   static get erc20Tokens(): string[] {
     return Object.keys(erc20Contracts);
+  }
+
+  static get allTokens(): string[] {
+    return [EthereumWallet.nativeToken, ...EthereumWallet.erc20Tokens];
   }
 
   async address(addressIndex: number = 0): Promise<string> {
