@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { isLoggedIn, logout } from "../auth";
+import { isLoggedIn, logout } from '../auth'
 
-const blockchains = ["ethereum", "bitcoin", "ripple", "stellar"];
-const capitalize = s => !s ? "" : s[0].toUpperCase() + s.slice(1);
-const onSelectBlockchain = (blockchain) => console.log(blockchain); // TODO
+const blockchains = ['ethereum', 'bitcoin', 'ripple', 'stellar']
+const capitalize = (s) => (!s ? '' : s[0].toUpperCase() + s.slice(1))
+const onSelectBlockchain = (blockchain) => console.log(blockchain) // TODO
 </script>
 
 <template>

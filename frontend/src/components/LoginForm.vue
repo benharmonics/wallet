@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { login } from "../auth";
+import { ref } from 'vue'
+import { login } from '../auth'
 
-const password = ref("");
-const error = ref<string | null>(null);
-const submitting = ref(false);
+const password = ref('')
+const error = ref<string | null>(null)
+const submitting = ref(false)
 
 async function onSubmit() {
-  error.value = null;
-  submitting.value = true;
-  const { ok, error: err } = await login(password.value);
-  submitting.value = false;
+  error.value = null
+  submitting.value = true
+  const { ok, error: err } = await login(password.value)
+  submitting.value = false
 
   if (!ok) {
-    error.value = err ?? "Login failed.";
+    error.value = err ?? 'Login failed.'
     // keep the password field; user can correct and resubmit
   } else {
-    password.value = "";
+    password.value = ''
   }
 }
 </script>
@@ -37,12 +37,8 @@ async function onSubmit() {
         required
       />
 
-      <button
-        type="submit"
-        class=""
-        :disabled="submitting"
-      >
-        {{ submitting ? "Signing in…" : "Sign in" }}
+      <button type="submit" class="" :disabled="submitting">
+        {{ submitting ? 'Signing in…' : 'Sign in' }}
       </button>
 
       <p v-if="error">{{ error }}</p>
@@ -51,8 +47,16 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-.space-y-1 > * + * { margin-top: 0.25rem; }
-.space-y-2 > * + * { margin-top: 0.5rem; }
-.space-y-3 > * + * { margin-top: 0.75rem; }
-.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-1 > * + * {
+  margin-top: 0.25rem;
+}
+.space-y-2 > * + * {
+  margin-top: 0.5rem;
+}
+.space-y-3 > * + * {
+  margin-top: 0.75rem;
+}
+.space-y-4 > * + * {
+  margin-top: 1rem;
+}
 </style>

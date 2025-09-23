@@ -4,6 +4,7 @@ import {
   WalletAddressOptions,
   WalletBalanceOptions,
   WalletManager,
+  WalletSendOptions,
 } from "@wallet";
 import { Protocol, Protocols } from "./provider";
 import { getReasonPhrase, StatusCodes } from "http-status-codes";
@@ -231,11 +232,11 @@ const SendRequestBody = z.object({
     .nonoptional()
     .transform((n) => n.toString()),
   addressIndex: z.number().int().gte(0).optional(),
-  asset: z.string().optional(),
+  asset: z.string().nullable().transform(s => s ?? ""),
 });
 
 walletApi.post("/send", async (req, res) => {
-  let data;
+  let data: WalletSendOptions;
   try {
     data = SendRequestBody.parse(req.body);
   } catch (e) {
