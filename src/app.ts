@@ -150,13 +150,13 @@ const AddressRequestQuery = z.object({
 
 function walletAddressOptions(
   protocol: Protocol,
-  query: any,
+  req: express.Request,
 ): WalletAddressOptions {
   switch (protocol) {
     case "bitcoin":
       return { protocol };
     default:
-      const parsed = AddressRequestQuery.safeParse(query);
+      const parsed = AddressRequestQuery.safeParse(req.query);
       if (!parsed.success)
         throw new Error(`bad query: ${parsed.error.message}`);
       const { addressIndex } = parsed.data;
@@ -170,7 +170,7 @@ walletApi.get("/address/:protocol", async (req, res) => {
     respondError(req, res, proto.error.message, StatusCodes.BAD_REQUEST);
     return;
   }
-  const opts = walletAddressOptions(proto.data, req.query);
+  const opts = walletAddressOptions(proto.data, req);
   await WalletManager.wallet!.address(opts)
     .then((a) => respond(req, res, StatusCodes.OK, a))
     .catch((e) => respondError(req, res, `Failed to get address: ${e}`));
@@ -183,13 +183,13 @@ const BalanceRequestQuery = z.object({
 
 function walletBalanceOptions(
   protocol: Protocol,
-  query: any,
+  req: express.Request,
 ): WalletBalanceOptions {
   switch (protocol) {
     case "bitcoin":
       return { protocol };
     default:
-      const parsed = BalanceRequestQuery.safeParse(query);
+      const parsed = BalanceRequestQuery.safeParse(req.query);
       if (!parsed.success)
         throw new Error(`bad query: ${parsed.error.message}`);
       const { addressIndex, asset } = parsed.data;
@@ -203,7 +203,7 @@ walletApi.get("/balance/:protocol", async (req, res) => {
     respondError(req, res, proto.error.message, StatusCodes.BAD_REQUEST);
     return;
   }
-  const opts = walletBalanceOptions(proto.data, req.query);
+  const opts = walletBalanceOptions(proto.data, req);
   await WalletManager.wallet!.balance(opts)
     .then((b) => respond(req, res, StatusCodes.OK, b))
     .catch((e) => respondError(req, res, `Failed to get balance: ${e}`));
