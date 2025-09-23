@@ -24,6 +24,7 @@ nav {
 }
 
 #page-title {
+  color: var(--color-heading);
   font-size: 32px;
   font-weight: bold;
 }

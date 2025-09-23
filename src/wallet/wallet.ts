@@ -269,7 +269,7 @@ export class Wallet {
           destination,
           amount,
           protocol,
-          asset: asset ?? "ETH",
+          asset: asset || "ETH",
         };
       }
       case "ripple": {
@@ -284,7 +284,7 @@ export class Wallet {
           destination,
           amount,
           protocol,
-          asset: asset ?? "XRP",
+          asset: asset || "XRP",
         };
       }
       case "stellar": {
@@ -301,7 +301,7 @@ export class Wallet {
           destination,
           amount,
           protocol,
-          asset: asset ?? "XLM",
+          asset: asset || "XLM",
         };
       }
       case "solana": {
@@ -318,7 +318,7 @@ export class Wallet {
           destination,
           amount,
           protocol,
-          asset: asset ?? "SOL",
+          asset: asset || "SOL",
         };
       }
     }

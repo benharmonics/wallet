@@ -96,6 +96,10 @@ async function onSubmitTransaction() {
   alert(
     `Submitted transaction. Response:\n\tTransaction hash: ${data.txHash}\n\tAmount: ${data.amount}\n\tAsset: ${data.asset}`,
   )
+  destination.value = null
+  amount.value = null
+  asset.value = null
+  transactionMenuOpen.value = false
 }
 </script>
 
@@ -193,13 +197,14 @@ async function onSubmitTransaction() {
 }
 
 h1 {
+  color: var(--color-heading);
   font-weight: bolder;
   font-size: 1.5rem;
 }
 
 #address-summary-table {
   border-spacing: 15px 0;
-  background: var(--color-background-mute);
+  background: var(--color-background-soft);
   border-radius: 0.5rem;
   padding: 1rem;
 }
@@ -266,7 +271,7 @@ h1 {
 }
 
 #transaction-menu {
-  background: var(--color-background-mute);
+  background: var(--color-background-soft);
   border-radius: 0.5rem;
   padding: 1rem;
 }
