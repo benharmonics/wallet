@@ -15,6 +15,7 @@ const balance = ref<string | null>(null)
 
 // transaction menu
 const transactionMenuOpen = ref(false)
+const transactionSubmitted = ref(false);
 const amount = ref<number | null>(null)
 const destination = ref<string | null>(null)
 const asset = ref<string | null>(null)
@@ -76,6 +77,7 @@ function copyToClipboard(elementId) {
 const onSelectBlockchain = (bc) => (currentBlockchain.value = bc)
 
 async function onSubmitTransaction() {
+  transactionSubmitted.value = true;
   const res = await fetch('/api/wallet/send', {
     method: 'POST',
     credentials: 'include',
@@ -100,6 +102,7 @@ async function onSubmitTransaction() {
   amount.value = null
   asset.value = null
   transactionMenuOpen.value = false
+  transactionSubmitted.value = false;
 }
 </script>
 
@@ -125,9 +128,12 @@ async function onSubmitTransaction() {
             <td>
               <span id="address-table-row">
                 <span id="address-text">{{ address }}</span>
-                <span class="small-icon-container" @click="copyToClipboard('address-text')"
-                  ><img :src="CopyIcon" alt="Copy"
-                /></span>
+                <span
+                  class="small-icon-container"
+                  @click="copyToClipboard('address-text')"
+                >
+                  <img :src="CopyIcon" alt="Copy" />
+                </span>
               </span>
             </td>
           </tr>
@@ -177,7 +183,9 @@ async function onSubmitTransaction() {
             placeholder="Enter asset or leave blank for native token"
           />
           <div id="transaction-menu-bottom-row">
-            <button type="submit" class="normal-button">Submit</button>
+            <button type="submit" class="normal-button" v-bind:disabled="transactionSubmitted">
+              {{ transactionSubmitted ? "Submitting..." : "Submit" }}
+            </button>
           </div>
         </form>
       </div>
@@ -200,6 +208,15 @@ h1 {
   color: var(--color-heading);
   font-weight: bolder;
   font-size: 1.5rem;
+}
+
+h2 {
+  color: var(--color-heading);
+  font-weight: bold;
+}
+
+label {
+  color: var(--color-heading);
 }
 
 #address-summary-table {
@@ -247,6 +264,10 @@ h1 {
 
 .normal-button:hover {
   cursor: pointer;
+}
+
+.normal-button:disabled:hover {
+  cursor: none;
 }
 
 .dropdown-content {

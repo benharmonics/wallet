@@ -29,6 +29,8 @@ import {
   TransactionMessageWithLifetime,
   compileTransaction,
   assertIsSendableTransaction,
+  getSignatureFromTransaction,
+  Signature,
 } from "@solana/kit";
 import { getTransferSolInstruction } from "@solana-program/system";
 import bip44, { Bip44Coin } from "../bip44";
@@ -60,7 +62,11 @@ export class SolanaWallet {
     this.rpc = createSolanaRpc(
       isMainnet ? mainnet(MAINNET_RPC_URL) : testnet(DEVNET_RPC_URL),
     );
-    this.rpcSubscriptions = createSolanaRpcSubscriptions("ws://127.0.0.1:8900");
+    this.rpcSubscriptions = createSolanaRpcSubscriptions(
+      isMainnet
+        ? mainnet(MAINNET_SUBSCRIPTIONS_URL)
+        : testnet(DEVNET_SUBSCRIPTIONS_URL),
+    );
     this.sendAndConfirmTransaction = sendAndConfirmTransactionFactory({
       rpc: this.rpc,
       rpcSubscriptions: this.rpcSubscriptions,
@@ -83,7 +89,7 @@ export class SolanaWallet {
     destination,
     addressIndex,
     asset,
-  }: SolanaSendOptions): Promise<string> {
+  }: SolanaSendOptions): Promise<Signature> {
     if (asset && asset.toUpperCase() !== "SOL") {
       throw new Error("Non-native token withdrawals unimplemented for Solana");
     }
@@ -96,9 +102,8 @@ export class SolanaWallet {
     );
     const signedTx = await signTransactionMessageWithSigners(txMessage);
     assertIsSendableTransaction(signedTx);
-    await this.sendAndConfirmTransaction(signedTx, { commitment: "confirmed" });
-    console.log("Signed Solana transaction:", signedTx);
-    throw new Error("Unimplemented");
+    await this.sendAndConfirmTransaction(signedTx, { commitment: "processed" });
+    return getSignatureFromTransaction(signedTx);
   }
 
   /**
