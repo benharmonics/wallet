@@ -8,6 +8,7 @@ const standardTimebounds = 300; // 5 minutes to sign/review/submit
 export type SendOptions = {
   valueXlm: string;
   destination: string;
+  addressIndex?: number;
   asset?: string;
   memo?: any;
 };
@@ -32,11 +33,10 @@ export class StellarWallet {
 
   async send(
     opts: SendOptions,
-    addressIndex: number = 0,
   ): Promise<StellarSdk.Horizon.HorizonApi.SubmitTransactionResponse> {
     const server = this.server();
     const [source, fee] = await Promise.all([
-      this.account(addressIndex),
+      this.account(opts.addressIndex),
       server.fetchBaseFee(),
     ]);
     const txBuilder = new StellarSdk.TransactionBuilder(source, {
@@ -65,7 +65,7 @@ export class StellarWallet {
       }),
     );
     const tx = txBuilder.setTimeout(standardTimebounds).build();
-    tx.sign(this.keypair(addressIndex));
+    tx.sign(this.keypair(opts.addressIndex ?? 0));
     return server.submitTransaction(tx);
   }
 

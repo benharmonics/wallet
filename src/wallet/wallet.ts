@@ -1,14 +1,14 @@
 import { formatUnits } from "ethers";
-import { satsToBtc } from "@utils/blockchain";
+import { WalletSettings, WalletAccounts } from "./settings";
 import { EthereumWallet } from "./ethereum";
 import { BitcoinWallet } from "./bitcoin";
-import { WalletSettings, WalletAccounts } from "./settings";
 import { RippleWallet } from "./ripple";
+import { SolanaWallet } from "./solana";
 import { StellarWallet } from "./stellar";
 import { AppConfiguration } from "../config";
-import { Protocol } from "src/provider";
+import { Protocol } from "../provider";
 import { fileExists } from "@utils/fs";
-import { SolanaWallet } from "./solana";
+import { satsToBtc } from "@utils/blockchain";
 
 export type GenericProtocol = "ethereum" | "ripple" | "stellar" | "solana";
 
@@ -214,8 +214,8 @@ export class Wallet {
         throw new Error("Non-native token balances unimplemented for Stellar");
       case "solana":
         if (!opts.asset || opts.asset.toUpperCase() === "SOL") {
-          const bal = await this.solana.balance(opts.addressIndex);
-          return bal.sol;
+          const balance = await this.solana.balance(opts.addressIndex);
+          return balance.sol;
         }
         throw new Error("Non-native token balances unimplemented for Solana");
     }
@@ -289,12 +289,12 @@ export class Wallet {
       }
       case "stellar": {
         const { amount, destination, asset, protocol, addressIndex } = opts;
-        const _opts = {
+        const res = await this.stellar.send({
+          addressIndex,
           valueXlm: amount,
           destination,
           asset,
-        };
-        const res = await this.stellar.send(_opts, addressIndex);
+        });
         return {
           txHash: res.hash,
           origin: this.stellar.pubKey(addressIndex),
@@ -306,14 +306,14 @@ export class Wallet {
       }
       case "solana": {
         const { amount, protocol, destination, asset, addressIndex } = opts;
-        const txHash = await this.solana.send({
+        const signature = await this.solana.send({
           valueSol: amount,
           destination,
           asset,
           addressIndex,
         });
         return {
-          txHash,
+          txHash: signature,
           origin: await this.solana.address(opts.addressIndex),
           destination,
           amount,
