@@ -8,6 +8,10 @@ import {
 } from "@wallet";
 import { Protocol, Protocols } from "./provider";
 
+type Result<T, U> =
+  | { type: "success"; data: T }
+  | { type: "error"; message: U };
+
 function respond(
   req: express.Request,
   res: express.Response,
@@ -149,29 +153,33 @@ const AddressRequestQuery = z.object({
 });
 
 function walletAddressOptions(
-  protocol: Protocol,
   req: express.Request,
-): WalletAddressOptions {
+): Result<WalletAddressOptions, string> {
+  const parsed = ZProtocol.safeParse(req.params.protocol);
+  if (!parsed.success) {
+    return { type: "error", message: parsed.error.message };
+  }
+  const protocol = parsed.data;
   switch (protocol) {
     case "bitcoin":
-      return { protocol };
+      return { type: "success", data: { protocol } };
     default:
       const parsed = AddressRequestQuery.safeParse(req.query);
-      if (!parsed.success)
-        throw new Error(`bad query: ${parsed.error.message}`);
+      if (!parsed.success) {
+        return { type: "error", message: `bad query: ${parsed.error.message}` };
+      }
       const { addressIndex } = parsed.data;
-      return { protocol, addressIndex };
+      return { type: "success", data: { protocol, addressIndex } };
   }
 }
 
 walletApi.get("/address/:protocol", async (req, res) => {
-  const proto = ZProtocol.safeParse(req.params.protocol);
-  if (!proto.success) {
-    respondError(req, res, proto.error.message, StatusCodes.BAD_REQUEST);
+  const opts = walletAddressOptions(req);
+  if (opts.type === "error") {
+    respondError(req, res, opts.message, StatusCodes.BAD_REQUEST);
     return;
   }
-  const opts = walletAddressOptions(proto.data, req);
-  await WalletManager.wallet!.address(opts)
+  await WalletManager.wallet!.address(opts.data)
     .then((a) => respond(req, res, StatusCodes.OK, a))
     .catch((e) => respondError(req, res, `Failed to get address: ${e}`));
 });
@@ -182,29 +190,33 @@ const BalanceRequestQuery = z.object({
 });
 
 function walletBalanceOptions(
-  protocol: Protocol,
   req: express.Request,
-): WalletBalanceOptions {
+): Result<WalletBalanceOptions, string> {
+  const parsed = ZProtocol.safeParse(req.params.protocol);
+  if (!parsed.success) {
+    return { type: "error", message: parsed.error.message };
+  }
+  const protocol = parsed.data;
   switch (protocol) {
     case "bitcoin":
-      return { protocol };
+      return { type: "success", data: { protocol } };
     default:
       const parsed = BalanceRequestQuery.safeParse(req.query);
-      if (!parsed.success)
-        throw new Error(`bad query: ${parsed.error.message}`);
+      if (!parsed.success) {
+        return { type: "error", message: `bad query: ${parsed.error.message}` };
+      }
       const { addressIndex, asset } = parsed.data;
-      return { protocol, addressIndex, asset };
+      return { type: "success", data: { protocol, addressIndex, asset } };
   }
 }
 
 walletApi.get("/balance/:protocol", async (req, res) => {
-  const proto = ZProtocol.safeParse(req.params.protocol);
-  if (!proto.success) {
-    respondError(req, res, proto.error.message, StatusCodes.BAD_REQUEST);
+  const opts = walletBalanceOptions(req);
+  if (opts.type === "error") {
+    respondError(req, res, opts.message, StatusCodes.BAD_REQUEST);
     return;
   }
-  const opts = walletBalanceOptions(proto.data, req);
-  await WalletManager.wallet!.balance(opts)
+  await WalletManager.wallet!.balance(opts.data)
     .then((b) => respond(req, res, StatusCodes.OK, b))
     .catch((e) => respondError(req, res, `Failed to get balance: ${e}`));
 });
