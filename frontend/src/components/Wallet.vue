@@ -20,11 +20,18 @@ const amount = ref<number | null>(null)
 const destination = ref<string | null>(null)
 const asset = ref<string | null>(null)
 
-async function updateAddressAndBalance(blockchain: string, addressIdx: number) {
+async function updateAddress(blockchain: string, addressIdx: number) {
   const addressRes = await fetch(`/api/wallet/address/${blockchain}?addressIndex=${addressIdx}`)
   address.value = (await addressRes.json()).data
+}
+
+async function updateBalance(blockchain: string, addressIdx: number) {
   const balanceRes = await fetch(`/api/wallet/balance/${blockchain}?addressIndex=${addressIdx}`)
   balance.value = (await balanceRes.json()).data
+}
+
+async function updateAddressAndBalance(blockchain: string, addressIdx: number) {
+  await Promise.all([updateAddress(blockchain, addressIdx), updateBalance(blockchain, addressIdx)])
 }
 
 onMounted(async () => {
@@ -85,15 +92,16 @@ async function onSubmitTransaction() {
     throw new Error(`Failed to submit transaction: ${JSON.stringify(json.error)}`)
   }
   const data = json.data
+  alert(
+    `Submitted transaction. Response:\n\tTransaction hash: ${data.txHash}\n\tAmount: ${data.amount}\n\tAsset: ${data.asset}`,
+  )
 
   destination.value = null
   amount.value = null
   asset.value = null
   transactionMenuOpen.value = false
   transactionSubmitted.value = false
-  alert(
-    `Submitted transaction. Response:\n\tTransaction hash: ${data.txHash}\n\tAmount: ${data.amount}\n\tAsset: ${data.asset}`,
-  )
+  setTimeout(() => updateAddressAndBalance(currentBlockchain.value, addressIndex.value), 5000)
 }
 </script>
 
