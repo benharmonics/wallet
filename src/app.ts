@@ -6,11 +6,11 @@ import {
   WalletBalanceOptions,
   WalletManager,
 } from "@wallet";
-import { Protocol, Protocols } from "./provider";
+import { Protocols } from "./provider";
 
-type Result<T, U> =
-  | { type: "success"; data: T }
-  | { type: "error"; message: U };
+type Result<TData, TError> =
+  | { type: "success"; data: TData }
+  | { type: "error"; error: TError };
 
 function respond(
   req: express.Request,
@@ -157,7 +157,7 @@ function walletAddressOptions(
 ): Result<WalletAddressOptions, string> {
   const parsed = ZProtocol.safeParse(req.params.protocol);
   if (!parsed.success) {
-    return { type: "error", message: parsed.error.message };
+    return { type: "error", error: parsed.error.message };
   }
   const protocol = parsed.data;
   switch (protocol) {
@@ -166,7 +166,7 @@ function walletAddressOptions(
     default:
       const parsed = AddressRequestQuery.safeParse(req.query);
       if (!parsed.success) {
-        return { type: "error", message: `bad query: ${parsed.error.message}` };
+        return { type: "error", error: `bad query: ${parsed.error.message}` };
       }
       const { addressIndex } = parsed.data;
       return { type: "success", data: { protocol, addressIndex } };
@@ -176,7 +176,7 @@ function walletAddressOptions(
 walletApi.get("/address/:protocol", async (req, res) => {
   const opts = walletAddressOptions(req);
   if (opts.type === "error") {
-    respondError(req, res, opts.message, StatusCodes.BAD_REQUEST);
+    respondError(req, res, opts.error, StatusCodes.BAD_REQUEST);
     return;
   }
   await WalletManager.wallet!.address(opts.data)
@@ -194,7 +194,7 @@ function walletBalanceOptions(
 ): Result<WalletBalanceOptions, string> {
   const parsed = ZProtocol.safeParse(req.params.protocol);
   if (!parsed.success) {
-    return { type: "error", message: parsed.error.message };
+    return { type: "error", error: parsed.error.message };
   }
   const protocol = parsed.data;
   switch (protocol) {
@@ -203,7 +203,7 @@ function walletBalanceOptions(
     default:
       const parsed = BalanceRequestQuery.safeParse(req.query);
       if (!parsed.success) {
-        return { type: "error", message: `bad query: ${parsed.error.message}` };
+        return { type: "error", error: `bad query: ${parsed.error.message}` };
       }
       const { addressIndex, asset } = parsed.data;
       return { type: "success", data: { protocol, addressIndex, asset } };
@@ -213,7 +213,7 @@ function walletBalanceOptions(
 walletApi.get("/balance/:protocol", async (req, res) => {
   const opts = walletBalanceOptions(req);
   if (opts.type === "error") {
-    respondError(req, res, opts.message, StatusCodes.BAD_REQUEST);
+    respondError(req, res, opts.error, StatusCodes.BAD_REQUEST);
     return;
   }
   await WalletManager.wallet!.balance(opts.data)
