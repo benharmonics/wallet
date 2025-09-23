@@ -67,7 +67,7 @@ app.post("/login", async (req, res) => {
   await WalletManager.auth(body.data.password)
     .then(() => console.log("Authenticated"))
     .then(() => respond(req, res, StatusCodes.OK, null))
-    .catch((e) => respond(req, res, StatusCodes.UNAUTHORIZED, null, e));
+    .catch((e) => respondError(req, res, e, StatusCodes.UNAUTHORIZED));
 });
 
 app.post("/logout", (req, res) => {
@@ -116,9 +116,7 @@ app.post("/keystore", async (req, res) => {
   await WalletManager.saveNew(body.data.mnemonic, body.data.password)
     .then(() => console.log("Saved new wallet"))
     .then(() => respond(req, res, StatusCodes.CREATED, "Saved new wallet"))
-    .catch((e) =>
-      respond(req, res, StatusCodes.INTERNAL_SERVER_ERROR, null, e),
-    );
+    .catch((e) => respondError(req, res, e));
 });
 
 walletApi.get("/", async (req, res) => {
@@ -143,9 +141,7 @@ walletApi.put("/", async (req, res) => {
     body.data.addressIndex,
   )
     .then(() => respond(req, res, StatusCodes.ACCEPTED, null))
-    .catch((e) =>
-      respond(req, res, StatusCodes.INTERNAL_SERVER_ERROR, null, e),
-    );
+    .catch((e) => respondError(req, res, e));
 });
 
 const AddressRequestQuery = z.object({
