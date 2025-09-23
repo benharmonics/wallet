@@ -18,3 +18,12 @@ export function btcToSatoshis(btc: string): bigint {
   const satoshisStr = intPart + fracPadded;
   return BigInt(satoshisStr);
 }
+
+export function intToDecimal(value: bigint, precision: number): string {
+  const sign = value < 0n ? "-" : "";
+  const abs = BigInt(Math.abs(Number(value)));
+  const exp = BigInt(Math.pow(10, precision));
+  const whole = abs / exp;
+  const frac = (abs % exp).toString().padStart(precision, "0");
+  return `${sign}${whole}.${frac}`;
+}

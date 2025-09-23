@@ -232,7 +232,10 @@ const SendRequestBody = z.object({
     .nonoptional()
     .transform((n) => n.toString()),
   addressIndex: z.number().int().gte(0).optional(),
-  asset: z.string().nullable().transform(s => s ?? ""),
+  asset: z
+    .string()
+    .nullable()
+    .transform((s) => s ?? ""),
 });
 
 walletApi.post("/send", async (req, res) => {

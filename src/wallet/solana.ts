@@ -1,18 +1,14 @@
 import {
   address,
-  createKeyPairSignerFromBytes,
   createSolanaRpc,
   createSolanaRpcSubscriptions,
   createTransactionMessage,
-  appendTransactionMessageInstructions,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
   signTransactionMessageWithSigners,
   sendAndConfirmTransactionFactory,
-  getSignatureFromTransaction,
   lamports,
   pipe,
-  setTransactionMessageFeePayer,
   appendTransactionMessageInstruction,
   mainnet,
   Rpc,
@@ -20,19 +16,42 @@ import {
   SolanaRpcSubscriptionsApi,
   RpcSubscriptions,
   SolanaRpcApiMainnet,
+  createKeyPairSignerFromPrivateKeyBytes,
+  KeyPairSigner,
+  TransactionSigner,
+  SolanaRpcApiTestnet,
+  MessagePartialSigner,
+  createSignableMessage,
+  SignatureBytes,
+  TransactionPartialSigner,
+  TransactionMessage,
+  TransactionMessageWithFeePayer,
+  TransactionMessageWithLifetime,
+  compileTransaction,
+  assertIsSendableTransaction,
 } from "@solana/kit";
-import { Protocol } from "../provider";
+import { getTransferSolInstruction } from "@solana-program/system";
 import bip44, { Bip44Coin } from "../bip44";
+import { intToDecimal } from "@utils/blockchain";
 
 const MAINNET_RPC_URL = "https://api.mainnet-beta.solana.com";
-const MAINNET_SUBSCRIPTIONS_URL = "wss://api.mainnet-beta.solana.com";
 const DEVNET_RPC_URL = "https://api.devnet.solana.com";
+const MAINNET_SUBSCRIPTIONS_URL = "wss://api.mainnet-beta.solana.com";
 const DEVNET_SUBSCRIPTIONS_URL = "wss://api.devnet.solana.com";
 
+export type SolanaSendOptions = {
+  valueSol: string;
+  destination: string;
+  addressIndex?: number;
+  asset?: string;
+};
+
 export class SolanaWallet {
-  private readonly protocol: Protocol = "solana";
   private readonly rpc: Rpc<SolanaRpcApiMainnet>;
   private readonly rpcSubscriptions: RpcSubscriptions<SolanaRpcSubscriptionsApi>;
+  private sendAndConfirmTransaction: ReturnType<
+    typeof sendAndConfirmTransactionFactory
+  >;
 
   constructor(
     private readonly mnemonic: string,
@@ -42,17 +61,14 @@ export class SolanaWallet {
       isMainnet ? mainnet(MAINNET_RPC_URL) : testnet(DEVNET_RPC_URL),
     );
     this.rpcSubscriptions = createSolanaRpcSubscriptions("ws://127.0.0.1:8900");
+    this.sendAndConfirmTransaction = sendAndConfirmTransactionFactory({
+      rpc: this.rpc,
+      rpcSubscriptions: this.rpcSubscriptions,
+    });
   }
 
   async address(addressIndex: number = 0): Promise<string> {
-    const b44 = bip44(this.mnemonic, {
-      coin: Bip44Coin.solana,
-      addressIndex,
-    });
-    if (!b44.privateKey) {
-      throw new Error("Failed to derive private key");
-    }
-    const signer = await createKeyPairSignerFromBytes(b44.privateKey);
+    const signer = await this.signer(addressIndex);
     return signer.address;
   }
 
@@ -62,11 +78,47 @@ export class SolanaWallet {
    * @param valueSol amount in SOL (use decimals)
    * @returns confirmed transaction signature (base58)
    */
-  async send(
-    valueSol: string,
-    to: string,
+  async send({
+    valueSol,
+    destination,
+    addressIndex,
+    asset,
+  }: SolanaSendOptions): Promise<string> {
+    if (asset && asset.toUpperCase() !== "SOL") {
+      throw new Error("Non-native token withdrawals unimplemented for Solana");
+    }
+    const sender = await this.signer(addressIndex ?? 0);
+    const txMessage = await getTransferSolTransactionMessage(
+      sender,
+      valueSol,
+      destination,
+      this.rpc,
+    );
+    const signedTx = await signTransactionMessageWithSigners(txMessage);
+    assertIsSendableTransaction(signedTx);
+    await this.sendAndConfirmTransaction(signedTx, { commitment: "confirmed" });
+    console.log("Signed Solana transaction:", signedTx);
+    throw new Error("Unimplemented");
+  }
+
+  /**
+   * Get the native SOL balance for an address.
+   */
+  async balance(
     addressIndex: number = 0,
-  ): Promise<string> {
+  ): Promise<{ lamports: bigint; sol: string }> {
+    const addr = address(await this.address(addressIndex));
+    const bal = await this.rpc.getBalance(addr).send();
+    return { lamports: bal.value, sol: intToDecimal(bal.value, 9) };
+  }
+
+  private async signer(addressIndex: number): Promise<KeyPairSigner> {
+    return createKeyPairSignerFromPrivateKeyBytes(
+      this.privateKey(addressIndex),
+    );
+  }
+
+  private privateKey(addressIndex: number): Uint8Array {
     const b44 = bip44(this.mnemonic, {
       coin: Bip44Coin.solana,
       addressIndex,
@@ -74,32 +126,51 @@ export class SolanaWallet {
     if (!b44.privateKey) {
       throw new Error("Failed to derive private key");
     }
-    const sender = await createKeyPairSignerFromBytes(b44.privateKey);
-
-    const v = BigInt((Number(valueSol) * 1e9).toFixed(0));
-    const amount = lamports(v);
-
-    const { value: latestBlockhash } = await this.rpc
-      .getLatestBlockhash()
-      .send();
-
-    let txMessage = pipe(
-      createTransactionMessage({ version: 0 }),
-      (tx) => setTransactionMessageFeePayer(sender.address, tx),
-      (tx) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, tx),
-    );
-
-    throw new Error("Unimplemented");
+    return b44.privateKey;
   }
+}
 
-  /**
-   * Get the native SOL balance for an address.
-   * @returns { lamports: bigint, sol: number }
-   */
-  async balance(
-    addessIndex: number = 0,
-  ): Promise<{ lamports: bigint; sol: number }> {
-    const sol = Number(value) / 1e9;
-    return { lamports: value, sol };
-  }
+async function getTransferSolTransactionMessage(
+  signer: TransactionSigner,
+  valueSol: string,
+  destination: string,
+  rpc: Rpc<SolanaRpcApiMainnet> | Rpc<SolanaRpcApiTestnet>,
+) {
+  const v = BigInt((Number(valueSol) * 1e9).toFixed(0));
+  const amount = lamports(v);
+
+  const instruction = getTransferSolInstruction({
+    amount,
+    destination: address(destination),
+    source: signer,
+  });
+  const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
+
+  return pipe(
+    createTransactionMessage({ version: 0 }),
+    (tx) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, tx),
+    (tx) => setTransactionMessageFeePayerSigner(signer, tx),
+    (tx) => appendTransactionMessageInstruction(instruction, tx),
+  );
+}
+
+async function signMessage(
+  signer: MessagePartialSigner,
+  message: string,
+): Promise<SignatureBytes> {
+  const [signatureDictionary] = await signer.signMessages([
+    createSignableMessage(message),
+  ]);
+  return signatureDictionary[signer.address];
+}
+
+async function signTransaction(
+  signer: TransactionPartialSigner,
+  transactionMessage: TransactionMessage &
+    TransactionMessageWithFeePayer &
+    TransactionMessageWithLifetime,
+): Promise<SignatureBytes> {
+  const transaction = compileTransaction(transactionMessage);
+  const [signatureDictionary] = await signer.signTransactions([transaction]);
+  return signatureDictionary[signer.address];
 }

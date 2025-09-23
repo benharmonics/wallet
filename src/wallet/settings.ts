@@ -12,12 +12,14 @@ export type WalletAccounts = {
   ethereum: { accounts: number[] };
   ripple: { accounts: number[] };
   stellar: { accounts: number[] };
+  solana: { accounts: number[] };
 };
 
 const DEFAULT_WALLET_ACCOUNTS: WalletAccounts = {
   bitcoin: { addressIndex: 0, rotateAddress: true },
   ethereum: { accounts: [0] },
-  ripple: { accounts: [0] },
+  solana: { accounts: [0] },
+  ripple: { accounts: [] },
   stellar: { accounts: [] },
 };
 

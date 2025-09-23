@@ -1,4 +1,10 @@
-export const Protocols = ["ethereum", "bitcoin", "ripple", "stellar"] as const;
+export const Protocols = [
+  "ethereum",
+  "bitcoin",
+  "ripple",
+  "stellar",
+  "solana",
+] as const;
 export type Protocol = (typeof Protocols)[number];
 
 export function providerRpcEndpoint(protocol: Protocol, network: string) {

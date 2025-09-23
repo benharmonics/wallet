@@ -8,10 +8,13 @@ import { StellarWallet } from "./stellar";
 import { AppConfiguration } from "../config";
 import { Protocol } from "src/provider";
 import { fileExists } from "@utils/fs";
+import { SolanaWallet } from "./solana";
+
+export type GenericProtocol = "ethereum" | "ripple" | "stellar" | "solana";
 
 export type BitcoinAddressOptions = { protocol: "bitcoin" };
 export type GenericAddressOptions = {
-  protocol: "ethereum" | "ripple" | "stellar";
+  protocol: GenericProtocol;
   addressIndex?: number;
 };
 export type WalletAddressOptions =
@@ -20,7 +23,7 @@ export type WalletAddressOptions =
 
 export type BitcoinBalanceOptions = { protocol: "bitcoin" };
 export type GenericBalanceOptions = {
-  protocol: "ethereum" | "ripple" | "stellar";
+  protocol: GenericProtocol;
   addressIndex?: number;
   asset?: string;
 };
@@ -34,7 +37,7 @@ export type BitcoinSendOptions = {
   destination: string;
 };
 export type GenericSendOptions = {
-  protocol: "ethereum" | "ripple" | "stellar";
+  protocol: GenericProtocol;
   amount: string;
   destination: string;
   addressIndex?: number;
@@ -63,6 +66,7 @@ export class Wallet {
   private ethereum: EthereumWallet;
   private ripple: RippleWallet;
   private stellar: StellarWallet;
+  private solana: SolanaWallet;
 
   private constructor(
     private settings: WalletSettings,
@@ -81,6 +85,7 @@ export class Wallet {
       mainnet ? "mainnet" : "testnet",
     );
     this.stellar = new StellarWallet(settings.mnemonic, mainnet);
+    this.solana = new SolanaWallet(settings.mnemonic, mainnet);
   }
 
   get accounts(): WalletAccounts {
@@ -120,6 +125,8 @@ export class Wallet {
       case "stellar":
         accounts = this.settings.accounts.stellar.accounts;
         break;
+      case "solana":
+        accounts = this.settings.accounts.solana.accounts;
       default:
         throw new Error(`Failed to update protocol ${protocol}`);
     }
@@ -203,20 +210,27 @@ export class Wallet {
           return native.balance;
         }
         throw new Error("Non-native token balances unimplemented for Stellar");
+      case "solana":
+        if (!opts.asset || opts.asset.toUpperCase() === "SOL") {
+          const bal = await this.solana.balance(opts.addressIndex);
+          return bal.sol;
+        }
+        throw new Error("Non-native token balances unimplemented for Solana");
     }
   }
 
   async send(opts: WalletSendOptions): Promise<TransactionResponse> {
     switch (opts.protocol) {
-      case "bitcoin":
+      case "bitcoin": {
+        const { amount, destination, protocol } = opts;
         const addressIndex = this.settings.accounts.bitcoin.addressIndex;
         const rotateAddress = this.settings.accounts.bitcoin.rotateAddress;
         const changeAddress = rotateAddress
           ? this.bitcoin.address(addressIndex + 1)
           : undefined;
         const txHash = await this.bitcoin.send(
-          opts.amount,
-          opts.destination,
+          amount,
+          destination,
           addressIndex,
           changeAddress,
         );
@@ -233,58 +247,78 @@ export class Wallet {
         return {
           txHash,
           origin: this.bitcoin.address(addressIndex),
-          destination: opts.destination,
-          amount: opts.amount,
-          protocol: opts.protocol,
+          destination,
+          amount,
+          protocol,
           asset: "BTC",
         };
-      case "ethereum":
+      }
+      case "ethereum": {
+        const { asset, amount, destination, addressIndex, protocol } = opts;
         const { hash } = await this.ethereum.send({
-          symbol: opts.asset,
-          amount: opts.amount,
-          to: opts.destination,
-          addressIndex: opts.addressIndex,
+          symbol: asset,
+          amount,
+          to: destination,
+          addressIndex,
         });
         return {
           txHash: hash,
           origin: await this.ethereum.address(opts.addressIndex),
-          destination: opts.destination,
-          amount: opts.amount,
-          protocol: opts.protocol,
-          asset: "ETH",
+          destination,
+          amount,
+          protocol,
+          asset: asset ?? "ETH",
         };
-      case "ripple":
-        if (!opts.asset || opts.asset.toUpperCase() === "XRP") {
-          const res = await this.ripple.send(
-            opts.amount,
-            opts.destination,
-            opts.addressIndex,
-          );
-          return {
-            txHash: typeof res.id === "string" ? res.id : `${res.id}`,
-            origin: this.ripple.address(opts.addressIndex),
-            destination: opts.destination,
-            amount: opts.amount,
-            protocol: opts.protocol,
-            asset: "XRP",
-          };
+      }
+      case "ripple": {
+        const { asset, amount, destination, addressIndex, protocol } = opts;
+        if (asset && asset.toUpperCase() !== "XRP") {
+          throw new Error("Non-native token balances unimplemented for Ripple");
         }
-        throw new Error("Non-native token balances unimplemented for Ripple");
-      case "stellar":
-        const _opts = {
-          valueXlm: opts.amount,
-          destination: opts.destination,
-          asset: opts.asset,
+        const res = await this.ripple.send(amount, destination, addressIndex);
+        return {
+          txHash: typeof res.id === "string" ? res.id : `${res.id}`,
+          origin: this.ripple.address(opts.addressIndex),
+          destination,
+          amount,
+          protocol,
+          asset: asset ?? "XRP",
         };
-        const res = await this.stellar.send(_opts, opts.addressIndex);
+      }
+      case "stellar": {
+        const { amount, destination, asset, protocol, addressIndex } = opts;
+        const _opts = {
+          valueXlm: amount,
+          destination,
+          asset,
+        };
+        const res = await this.stellar.send(_opts, addressIndex);
         return {
           txHash: res.hash,
-          origin: this.stellar.pubKey(opts.addressIndex),
-          destination: opts.destination,
-          amount: opts.amount,
-          protocol: opts.protocol,
-          asset: "XLM",
+          origin: this.stellar.pubKey(addressIndex),
+          destination,
+          amount,
+          protocol,
+          asset: asset ?? "XLM",
         };
+      }
+      case "solana": {
+        const { amount, protocol, destination, asset, addressIndex } = opts;
+        const txHash = await this.solana.send({
+          valueSol: amount,
+          destination,
+          asset,
+          addressIndex,
+        });
+        return {
+          txHash,
+          origin: await this.solana.address(opts.addressIndex),
+          destination,
+          amount,
+          protocol,
+          asset: asset ?? "SOL",
+        };
+      }
     }
   }
 }
