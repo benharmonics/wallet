@@ -28,7 +28,10 @@ Available protocols (blockchains) are:
 - [x] bitcoin
 - [x] stellar
 - [x] ripple
-- [ ] solana
+- [x] solana
+- [ ] litecoin
+- [ ] sui
+- [ ] monero
 
 See the `frontend.py` script for examples of using each API route. Alternatively, just run the script to interact with the wallet while it's running.
 
