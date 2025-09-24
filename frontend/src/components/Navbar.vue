@@ -19,8 +19,9 @@ const onSelectBlockchain = (blockchain) => console.log(blockchain) // TODO
 nav {
   display: flex;
   justify-content: space-between;
-  width: 100%;
-  padding: 12px 12px;
+  align-items: center;
+  padding: 0.5rem 4rem;
+  background: var(--color-background-mute)
 }
 
 #page-title {

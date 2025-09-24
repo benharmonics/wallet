@@ -25,9 +25,10 @@ async function onSubmit() {
   <section id="login">
     <h1>Please enter your password</h1>
 
-    <form @submit.prevent="onSubmit" class="space-y-4">
+    <form @submit.prevent="onSubmit">
       <input
         v-model="password"
+        id="password-input"
         type="password"
         inputmode="text"
         autocomplete="current-password"
@@ -37,7 +38,7 @@ async function onSubmit() {
         required
       />
 
-      <button type="submit" class="" :disabled="submitting">
+      <button type="submit" id="sign-in-btn" :disabled="submitting">
         {{ submitting ? 'Signing in…' : 'Sign in' }}
       </button>
 
@@ -47,16 +48,23 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-.space-y-1 > * + * {
-  margin-top: 0.25rem;
+#login{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
 }
-.space-y-2 > * + * {
-  margin-top: 0.5rem;
+
+h1 { color: var(--color-heading) }
+
+form { display: flex; gap: 1rem; }
+
+#password-input {
+  padding: 4px;
+  border-radius: 0.5rem;
 }
-.space-y-3 > * + * {
-  margin-top: 0.75rem;
-}
-.space-y-4 > * + * {
-  margin-top: 1rem;
+
+#sign-in-btn {
+  padding: 2px 8px;
 }
 </style>

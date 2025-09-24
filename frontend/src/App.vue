@@ -34,5 +34,6 @@ onMounted(() => {
 .content {
   display: flex;
   justify-content: center;
+  padding: 1rem;
 }
 </style>

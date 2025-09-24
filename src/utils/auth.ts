@@ -1,4 +1,4 @@
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 export type JwtPair = { accessToken: string; refreshToken: string };
 
@@ -16,7 +16,7 @@ export function signJwt(
 
 export type VerifyJwtResult =
   | { ok: false }
-  | { decodedToken: string | JwtPayload; ok: true };
+  | { decodedToken: string | jwt.JwtPayload; ok: true };
 
 export function verifyJwt(token: string, jwtSecret: string): VerifyJwtResult {
   try {
