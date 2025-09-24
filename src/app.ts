@@ -86,6 +86,12 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const ZProtocol = z.enum(Protocols);
+const ZBip32AddressIndex = z.coerce
+  .number()
+  .int()
+  .gte(0, "invalid BIP32 address index - must be positive")
+  .lt(Math.pow(2, 32), "invalid BIP32 address index - out of range")
+  .optional();
 
 const ZLoginRequestBody = z.object({ password: z.string() });
 
@@ -151,8 +157,8 @@ app.get("/keystore", async (req, res) => {
 });
 
 const ZKeystorePostRequestBody = z.object({
-  password: z.string().nonoptional(),
-  mnemonic: z.string().nonoptional(),
+  password: z.string().trim().min(1, "password must be nonempty").nonoptional(),
+  mnemonic: z.string().trim().min(1, "given mnemonic is empty").nonoptional(),
 });
 
 app.post("/keystore", async (req, res) => {
@@ -192,9 +198,7 @@ walletApi.put("/", async (req, res) => {
     .catch((e) => respondError(req, res, e));
 });
 
-const ZAddressRequestQuery = z.object({
-  addressIndex: z.coerce.number().int().gte(0).optional(),
-});
+const ZAddressRequestQuery = z.object({ addressIndex: ZBip32AddressIndex });
 
 function walletAddressOptions(
   req: express.Request,
@@ -229,7 +233,7 @@ walletApi.get("/address/:protocol", async (req, res) => {
 });
 
 const ZBalanceRequestQuery = z.object({
-  addressIndex: z.coerce.number().int().gte(0).optional(),
+  addressIndex: ZBip32AddressIndex,
   asset: z.string().optional(),
 });
 
@@ -273,7 +277,7 @@ const ZSendRequestBody = z.object({
     .gte(0)
     .nonoptional()
     .transform((n) => n.toString()),
-  addressIndex: z.number().int().gte(0).optional(),
+  addressIndex: ZBip32AddressIndex,
   asset: z
     .string()
     .nullable()

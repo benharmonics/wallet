@@ -21,7 +21,7 @@ nav {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 4rem;
-  background: var(--color-background-mute)
+  background: var(--color-background-mute);
 }
 
 #page-title {
