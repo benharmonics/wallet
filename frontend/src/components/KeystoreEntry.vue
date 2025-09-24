@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { formatZodError } from '../util'
+import { toast } from '../toast'
 
 const mnemonic = ref('')
 const password = ref('')
 const confirmInput = ref('')
-const submissionStatus = ref<'pending' | 'refused' | 'submitting' | 'success' | 'failure'>(
-  'pending',
-)
+
+type SubmissionStatus = 'pending' | 'refused' | 'submitting' | 'success' | 'failure'
+
+const submissionStatus = ref<SubmissionStatus>('pending')
 const message = ref('')
 
 const confirmationMessage = 'I understand'
@@ -15,7 +17,7 @@ const confirmationMessage = 'I understand'
 function onSubmit() {
   if (confirmInput.value !== confirmationMessage) {
     submissionStatus.value = 'refused'
-    message.value = 'Please confirm that you understand the consequences of this action'
+    toast('error', 'Please confirm that you understand the consequences of this action')
     return
   }
   submissionStatus.value = 'submitting'
@@ -32,15 +34,16 @@ function onSubmit() {
       const json = await res.json()
       if (res.status !== 201) {
         submissionStatus.value = 'refused'
-        message.value = 'Refused: ' + formatZodError(json.error)
+        toast('error', 'Refused: ' + formatZodError(json.error))
         return
       }
       submissionStatus.value = 'success'
+      toast('success', 'Success! Please log in with your new password.')
       message.value = 'Success! Please log in with your new password.'
     })
     .catch(() => {
       submissionStatus.value = 'failure'
-      message.value = 'Network error.'
+      toast('error', 'Network failure.')
     })
 }
 </script>
@@ -52,12 +55,6 @@ function onSubmit() {
       <b id="warning-text">WARNING!</b> If you already have a wallet, <i>it will be overwritten.</i>
     </p>
     <p><b id="critical-text">This action cannot be undone.</b></p>
-    <div id="message-board" v-if="message && message.length > 0">
-      <p>
-        Status: <i id="submission-status">{{ submissionStatus }}</i>
-      </p>
-      <p>{{ message }}</p>
-    </div>
     <form v-if="submissionStatus !== 'success'" @submit.prevent="onSubmit">
       <div class="form-row">
         <label>Enter your mnemonic sentence which will seed your wallet</label>
@@ -96,16 +93,6 @@ function onSubmit() {
 #critical-text {
   color: red;
   font-weight: bolder;
-}
-
-#message-board {
-  padding: 1rem;
-  background: var(--color-background-mute);
-  border-radius: 1rem;
-}
-
-#submission-status {
-  font-weight: bold;
 }
 
 form {

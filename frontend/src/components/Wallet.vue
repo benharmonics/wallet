@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
 import { accessToken, refresh } from '../auth'
+import { toast } from '../toast'
 import CopyIcon from '@/assets/copy.svg'
 import CloseIcon from '@/assets/close.svg'
 
@@ -74,7 +75,7 @@ const capitalize = (s) => (!s ? '' : s[0].toUpperCase() + s.slice(1))
 function copyToClipboard(elementId) {
   const element = document.getElementById(elementId)
   navigator.clipboard.writeText(element.innerHTML)
-  alert('Copied to clipboard') // TODO: temporary alert a la toast
+  toast('info', 'Copied to clipboard')
 }
 
 const onSelectBlockchain = (bc) => (currentBlockchain.value = bc)
@@ -98,7 +99,8 @@ async function onSubmitTransaction() {
     throw new Error(`Failed to submit transaction: ${JSON.stringify(json.error)}`)
   }
   const data = json.data
-  alert(
+  toast(
+    'success',
     `Submitted transaction. Response:\n\tTransaction hash: ${data.txHash}\n\tAmount: ${data.amount}\n\tAsset: ${data.asset}`,
   )
 

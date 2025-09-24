@@ -4,6 +4,7 @@ import { checkAuth, isLoggedIn } from './auth'
 import Navbar from './components/Navbar.vue'
 import LoginForm from './components/LoginForm.vue'
 import Wallet from './components/Wallet.vue'
+import ToastHost from './components/ToastHost.vue'
 
 onMounted(() => {
   // Initial auth check on startup
@@ -12,6 +13,8 @@ onMounted(() => {
 </script>
 
 <template>
+  <toast-host />
+
   <header>
     <navbar />
   </header>
