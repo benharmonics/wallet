@@ -1,5 +1,6 @@
-import { getReasonPhrase, StatusCodes } from "http-status-codes";
 import express from "express";
+import { getReasonPhrase, StatusCodes } from "http-status-codes";
+import { JwtPayload } from "jsonwebtoken";
 import * as z from "zod";
 import {
   WalletAddressOptions,
@@ -8,7 +9,6 @@ import {
 } from "@wallet";
 import { signJwt, verifyJwt } from "@utils/auth";
 import { Protocols } from "./provider";
-import { JwtPayload } from "jsonwebtoken";
 
 const JWT_SECRET = "my secret"; // TODO: remove and replace with environment variable
 
@@ -69,6 +69,7 @@ function verifyAuthHeader(
 const app = express();
 const walletApi = express.Router();
 
+// Validate JWT middleware
 walletApi.use((req, res, next) => {
   const result = verifyAuthHeader(req);
   if (!result.ok) {
@@ -78,19 +79,18 @@ walletApi.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
 app.use("/wallet", walletApi);
-
+app.use(express.json());
 if (process.env.NODE_ENV !== "production") {
   app.set("json spaces", 2);
 }
 
 const ZProtocol = z.enum(Protocols);
 
-const LoginRequestBody = z.object({ password: z.string() });
+const ZLoginRequestBody = z.object({ password: z.string() });
 
 app.post("/login", async (req, res) => {
-  let body = LoginRequestBody.safeParse(req.body);
+  let body = ZLoginRequestBody.safeParse(req.body);
   if (!body.success) {
     respondError(req, res, body.error.message, StatusCodes.BAD_REQUEST);
     return;
@@ -150,13 +150,13 @@ app.get("/keystore", async (req, res) => {
   respond(req, res, StatusCodes.OK, data);
 });
 
-const KeystorePostRequestBody = z.object({
+const ZKeystorePostRequestBody = z.object({
   password: z.string().nonoptional(),
   mnemonic: z.string().nonoptional(),
 });
 
 app.post("/keystore", async (req, res) => {
-  let body = KeystorePostRequestBody.safeParse(req.body);
+  let body = ZKeystorePostRequestBody.safeParse(req.body);
   if (!body.success) {
     respondError(req, res, body.error.message, StatusCodes.BAD_REQUEST);
     return;
@@ -171,14 +171,14 @@ walletApi.get("/", async (req, res) => {
   respond(req, res, StatusCodes.OK, WalletManager.wallet!.accounts);
 });
 
-const WalletPutRequestBody = z.object({
+const ZWalletPutRequestBody = z.object({
   action: z.enum(["add", "remove"]).nonoptional(),
   protocol: ZProtocol.nonoptional(),
   addressIndex: z.number().int().gte(0).nonoptional(),
 });
 
 walletApi.put("/", async (req, res) => {
-  const body = WalletPutRequestBody.safeParse(req.body);
+  const body = ZWalletPutRequestBody.safeParse(req.body);
   if (!body.success) {
     respondError(req, res, body.error.message, StatusCodes.BAD_REQUEST);
     return;
@@ -192,7 +192,7 @@ walletApi.put("/", async (req, res) => {
     .catch((e) => respondError(req, res, e));
 });
 
-const AddressRequestQuery = z.object({
+const ZAddressRequestQuery = z.object({
   addressIndex: z.coerce.number().int().gte(0).optional(),
 });
 
@@ -208,7 +208,7 @@ function walletAddressOptions(
     case "bitcoin":
       return { ok: true, data: { protocol } };
     default:
-      const parsed = AddressRequestQuery.safeParse(req.query);
+      const parsed = ZAddressRequestQuery.safeParse(req.query);
       if (!parsed.success) {
         return { ok: false, error: `bad query: ${parsed.error.message}` };
       }
@@ -228,7 +228,7 @@ walletApi.get("/address/:protocol", async (req, res) => {
     .catch((e) => respondError(req, res, `Failed to get address: ${e}`));
 });
 
-const BalanceRequestQuery = z.object({
+const ZBalanceRequestQuery = z.object({
   addressIndex: z.coerce.number().int().gte(0).optional(),
   asset: z.string().optional(),
 });
@@ -245,7 +245,7 @@ function walletBalanceOptions(
     case "bitcoin":
       return { ok: true, data: { protocol } };
     default:
-      const parsed = BalanceRequestQuery.safeParse(req.query);
+      const parsed = ZBalanceRequestQuery.safeParse(req.query);
       if (!parsed.success) {
         return { ok: false, error: `bad query: ${parsed.error.message}` };
       }
@@ -265,7 +265,7 @@ walletApi.get("/balance/:protocol", async (req, res) => {
     .catch((e) => respondError(req, res, `Failed to get balance: ${e}`));
 });
 
-const SendRequestBody = z.object({
+const ZSendRequestBody = z.object({
   protocol: ZProtocol.nonoptional(),
   destination: z.string().nonempty().nonoptional(),
   amount: z
@@ -281,7 +281,7 @@ const SendRequestBody = z.object({
 });
 
 walletApi.post("/send", async (req, res) => {
-  let body = SendRequestBody.safeParse(req.body);
+  let body = ZSendRequestBody.safeParse(req.body);
   if (!body.success) {
     respondError(req, res, body.error.message, StatusCodes.BAD_REQUEST);
     return;
