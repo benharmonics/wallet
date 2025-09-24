@@ -2,22 +2,16 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 
 export type JwtPair = { accessToken: string; refreshToken: string };
 
-export function jwtPair(
-  jwtSecret: string,
-  payload?: string | Buffer | object,
-): JwtPair {
-  return {
-    accessToken: signJwt(jwtSecret, payload, { expiresIn: "10m" }),
-    refreshToken: signJwt(jwtSecret, payload, { expiresIn: "1d" }),
-  };
-}
-
 export function signJwt(
   jwtSecret: string,
   payload?: string | Buffer | object,
   signOptions?: jwt.SignOptions,
 ): string {
-  return jwt.sign(payload ?? {}, jwtSecret, signOptions);
+  return jwt.sign(
+    payload ?? {},
+    jwtSecret,
+    signOptions ?? { expiresIn: "10m" },
+  );
 }
 
 export type VerifyJwtResult =

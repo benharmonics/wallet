@@ -6,7 +6,7 @@ import {
   WalletBalanceOptions,
   WalletManager,
 } from "@wallet";
-import { jwtPair, verifyJwt } from "@utils/auth";
+import { signJwt, verifyJwt } from "@utils/auth";
 import { Protocols } from "./provider";
 import { JwtPayload } from "jsonwebtoken";
 
@@ -98,13 +98,7 @@ app.post("/login", async (req, res) => {
   await WalletManager.auth(body.data.password)
     .then(() => console.log("Authenticated"))
     .then(() => {
-      const { accessToken, refreshToken } = jwtPair(JWT_SECRET);
-      res.cookie("jwt", refreshToken, {
-        httpOnly: true,
-        sameSite: "none",
-        secure: true,
-        maxAge: 24 * 60 * 60 * 1000,
-      });
+      const accessToken = signJwt(JWT_SECRET);
       respond(req, res, StatusCodes.OK, { accessToken });
     })
     .catch((e) => respondError(req, res, e, StatusCodes.UNAUTHORIZED));
@@ -125,17 +119,12 @@ app.get("/whoami", (req, res) => {
 });
 
 app.post("/refresh", (req, res) => {
-  const refreshToken = req.cookies?.jwt;
-  if (!refreshToken) {
-    respondError(req, res, "no refresh token found", StatusCodes.UNAUTHORIZED);
-    return;
-  }
-  const { ok } = verifyJwt(refreshToken, JWT_SECRET);
+  const { ok } = verifyAuthHeader(req);
   if (!ok) {
     respondError(req, res, "invalid refresh token", StatusCodes.UNAUTHORIZED);
     return;
   }
-  const { accessToken } = jwtPair(JWT_SECRET);
+  const accessToken = signJwt(JWT_SECRET);
   respond(req, res, StatusCodes.OK, { accessToken });
 });
 

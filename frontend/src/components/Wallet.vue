@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
-import { accessToken } from '../auth'
+import { accessToken, refresh } from '../auth'
 import CopyIcon from '@/assets/copy.svg'
 import CloseIcon from '@/assets/close.svg'
 
@@ -37,6 +37,7 @@ async function updateBalance(blockchain: string, addressIdx: number) {
 
 async function updateAddressAndBalance(blockchain: string, addressIdx: number) {
   await Promise.all([updateAddress(blockchain, addressIdx), updateBalance(blockchain, addressIdx)])
+  refresh()
 }
 
 onMounted(async () => {

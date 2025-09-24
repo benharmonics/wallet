@@ -1,5 +1,9 @@
 import { ref } from 'vue'
 
+export function accessToken(): string | null {
+  return localStorage.getItem('accessToken')
+}
+
 export const isLoggedIn = ref<boolean | null>(null)
 
 export async function checkAuth(): Promise<void> {
@@ -15,10 +19,6 @@ export async function checkAuth(): Promise<void> {
   }
 }
 
-export function accessToken(): string | null {
-  return localStorage.getItem('accessToken')
-}
-
 export async function login(password: string): Promise<{ ok: boolean; error?: string }> {
   try {
     const res = await fetch('/api/login', {
@@ -27,11 +27,10 @@ export async function login(password: string): Promise<{ ok: boolean; error?: st
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password }),
     })
-    if (res.status == 401) {
-      const msg = 'Login failed - invalid password.'
-      return { ok: false, error: msg }
-    }
     const json = await res.json()
+    if (res.status !== 200) {
+      return { ok: false, error: json.data }
+    }
     localStorage.setItem('accessToken', json.data.accessToken)
   } catch (e) {
     return { ok: false, error: (e as any)?.message || 'Network error.' }
@@ -40,10 +39,29 @@ export async function login(password: string): Promise<{ ok: boolean; error?: st
   return { ok: Boolean(isLoggedIn.value) }
 }
 
+export async function refresh(): Promise<void> {
+  try {
+    const res = await fetch('/api/refresh', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${accessToken()}` },
+    })
+    if (res.status !== 200) {
+      await logout()
+      return
+    }
+    const json = await res.json()
+    localStorage.setItem('accessToken', json.data.accessToken)
+  } catch (e) {
+    console.error('Network error:', e)
+  }
+}
+
 export async function logout(): Promise<void> {
   await fetch('/api/logout', {
     method: 'POST',
     credentials: 'include',
   })
+  localStorage.removeItem('accessToken')
   await checkAuth()
 }
