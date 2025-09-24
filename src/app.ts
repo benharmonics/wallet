@@ -6,11 +6,15 @@ import {
   WalletBalanceOptions,
   WalletManager,
 } from "@wallet";
+import { jwtPair, verifyJwt } from "@utils/auth";
 import { Protocols } from "./provider";
+import { JwtPayload } from "jsonwebtoken";
+
+const JWT_SECRET = "my secret"; // TODO: remove and replace with environment variable
 
 type Result<TData, TError> =
-  | { type: "success"; data: TData }
-  | { type: "error"; error: TError };
+  | { ok: true; data: TData }
+  | { ok: false; error: TError };
 
 function respond(
   req: express.Request,
@@ -39,13 +43,36 @@ function respondError(
   respond(req, res, statusCode, null, err);
 }
 
+// JWT check - RFC6750 `Authorization: Bearer ...` format
+function verifyAuthHeader(
+  req: express.Request,
+): Result<string | JwtPayload, string> {
+  const authHeader = req.header("Authorization");
+  if (!authHeader) {
+    return {
+      ok: false,
+      error: "header 'Authorization: Bearer <your JWT>' is required",
+    };
+  }
+  const apiKey = authHeader.split("Bearer ")[1];
+  const res = verifyJwt(apiKey, JWT_SECRET);
+  if (!res.ok) {
+    return {
+      ok: false,
+      error:
+        "invalid JWT - please format your header e.g. 'Authorization: Bearer <your JWT>'",
+    };
+  }
+  return { ok: true, data: res.decodedToken };
+}
+
 const app = express();
 const walletApi = express.Router();
 
-// auth check
 walletApi.use((req, res, next) => {
-  if (!WalletManager.isAuthenticated) {
-    respondError(req, res, "not logged in", StatusCodes.UNAUTHORIZED);
+  const result = verifyAuthHeader(req);
+  if (!result.ok) {
+    respondError(req, res, result.error, StatusCodes.UNAUTHORIZED);
     return;
   }
   next();
@@ -70,18 +97,46 @@ app.post("/login", async (req, res) => {
   }
   await WalletManager.auth(body.data.password)
     .then(() => console.log("Authenticated"))
-    .then(() => respond(req, res, StatusCodes.OK, null))
+    .then(() => {
+      const { accessToken, refreshToken } = jwtPair(JWT_SECRET);
+      res.cookie("jwt", refreshToken, {
+        httpOnly: true,
+        sameSite: "none",
+        secure: true,
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+      respond(req, res, StatusCodes.OK, { accessToken });
+    })
     .catch((e) => respondError(req, res, e, StatusCodes.UNAUTHORIZED));
 });
 
 app.post("/logout", (req, res) => {
-  WalletManager.logout();
+  WalletManager.disconnect();
   respond(req, res, StatusCodes.OK, null);
 });
 
 app.get("/whoami", (req, res) => {
-  const data = { loggedIn: WalletManager.isAuthenticated };
-  respond(req, res, StatusCodes.OK, data);
+  const result = verifyAuthHeader(req);
+  if (!result.ok) {
+    respondError(req, res, result.error, StatusCodes.UNAUTHORIZED);
+    return;
+  }
+  respond(req, res, StatusCodes.OK, result.data);
+});
+
+app.post("/refresh", (req, res) => {
+  const refreshToken = req.cookies?.jwt;
+  if (!refreshToken) {
+    respondError(req, res, "no refresh token found", StatusCodes.UNAUTHORIZED);
+    return;
+  }
+  const { ok } = verifyJwt(refreshToken, JWT_SECRET);
+  if (!ok) {
+    respondError(req, res, "invalid refresh token", StatusCodes.UNAUTHORIZED);
+    return;
+  }
+  const { accessToken } = jwtPair(JWT_SECRET);
+  respond(req, res, StatusCodes.OK, { accessToken });
 });
 
 app.get("/info", async (req, res) => {
@@ -157,29 +212,29 @@ function walletAddressOptions(
 ): Result<WalletAddressOptions, string> {
   const parsed = ZProtocol.safeParse(req.params.protocol);
   if (!parsed.success) {
-    return { type: "error", error: parsed.error.message };
+    return { ok: false, error: parsed.error.message };
   }
   const protocol = parsed.data;
   switch (protocol) {
     case "bitcoin":
-      return { type: "success", data: { protocol } };
+      return { ok: true, data: { protocol } };
     default:
       const parsed = AddressRequestQuery.safeParse(req.query);
       if (!parsed.success) {
-        return { type: "error", error: `bad query: ${parsed.error.message}` };
+        return { ok: false, error: `bad query: ${parsed.error.message}` };
       }
       const { addressIndex } = parsed.data;
-      return { type: "success", data: { protocol, addressIndex } };
+      return { ok: true, data: { protocol, addressIndex } };
   }
 }
 
 walletApi.get("/address/:protocol", async (req, res) => {
-  const opts = walletAddressOptions(req);
-  if (opts.type === "error") {
-    respondError(req, res, opts.error, StatusCodes.BAD_REQUEST);
+  const optsResult = walletAddressOptions(req);
+  if (!optsResult.ok) {
+    respondError(req, res, optsResult.error, StatusCodes.BAD_REQUEST);
     return;
   }
-  await WalletManager.wallet!.address(opts.data)
+  await WalletManager.wallet!.address(optsResult.data)
     .then((a) => respond(req, res, StatusCodes.OK, a))
     .catch((e) => respondError(req, res, `Failed to get address: ${e}`));
 });
@@ -194,29 +249,29 @@ function walletBalanceOptions(
 ): Result<WalletBalanceOptions, string> {
   const parsed = ZProtocol.safeParse(req.params.protocol);
   if (!parsed.success) {
-    return { type: "error", error: parsed.error.message };
+    return { ok: false, error: parsed.error.message };
   }
   const protocol = parsed.data;
   switch (protocol) {
     case "bitcoin":
-      return { type: "success", data: { protocol } };
+      return { ok: true, data: { protocol } };
     default:
       const parsed = BalanceRequestQuery.safeParse(req.query);
       if (!parsed.success) {
-        return { type: "error", error: `bad query: ${parsed.error.message}` };
+        return { ok: false, error: `bad query: ${parsed.error.message}` };
       }
       const { addressIndex, asset } = parsed.data;
-      return { type: "success", data: { protocol, addressIndex, asset } };
+      return { ok: true, data: { protocol, addressIndex, asset } };
   }
 }
 
 walletApi.get("/balance/:protocol", async (req, res) => {
-  const opts = walletBalanceOptions(req);
-  if (opts.type === "error") {
-    respondError(req, res, opts.error, StatusCodes.BAD_REQUEST);
+  const optsResult = walletBalanceOptions(req);
+  if (!optsResult.ok) {
+    respondError(req, res, optsResult.error, StatusCodes.BAD_REQUEST);
     return;
   }
-  await WalletManager.wallet!.balance(opts.data)
+  await WalletManager.wallet!.balance(optsResult.data)
     .then((b) => respond(req, res, StatusCodes.OK, b))
     .catch((e) => respondError(req, res, `Failed to get balance: ${e}`));
 });

@@ -16,6 +16,7 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
     "chai": "^4.2.0",
     "hardhat": "^2.22.19",
     "mocha": "^11.1.0",
@@ -38,6 +39,7 @@
     "ethers": "^6.13.5",
     "express": "^5.1.0",
     "http-status-codes": "^2.3.0",
+    "jsonwebtoken": "^9.0.2",
     "tiny-secp256k1": "^2.2.4",
     "xrpl": "^4.4.0",
     "zod": "^4.1.8"

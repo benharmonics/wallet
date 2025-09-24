@@ -330,8 +330,6 @@ export class WalletManager {
   static #wallet: Wallet | null = null;
   static #lastAuth: Date | null = null;
   private static readonly logoutTimeout = 30 * 60 * 1000; // 30 minutes
-  private static authCheckCoroutine: ReturnType<typeof setInterval> | null =
-    null;
 
   static get wallet(): Wallet | null {
     return WalletManager.#wallet;
@@ -339,10 +337,6 @@ export class WalletManager {
 
   static get lastAuth(): Date | null {
     return WalletManager.#lastAuth;
-  }
-
-  static get isAuthenticated(): boolean {
-    return WalletManager.#wallet !== null;
   }
 
   static get isMainnet(): boolean {
@@ -371,19 +365,6 @@ export class WalletManager {
     WalletManager.#appConfiguration = cfg;
   }
 
-  // Delete static Wallet intermittently
-  private static authCheckSetInterval() {
-    WalletManager.authCheckCoroutine ??= setInterval(() => {
-      const now = new Date().getTime();
-      const lastAuth = WalletManager.lastAuth?.getTime();
-      const authTimedOut =
-        !lastAuth || now - lastAuth > WalletManager.logoutTimeout;
-      if (authTimedOut && WalletManager.isAuthenticated) {
-        WalletManager.logout();
-      }
-    }, 10 * 1000);
-  }
-
   static async keystoreExists(): Promise<boolean> {
     const { mnemonicPath } = WalletManager.#appConfiguration;
     return fileExists(mnemonicPath);
@@ -401,7 +382,6 @@ export class WalletManager {
   }
 
   static async auth(password: string) {
-    WalletManager.authCheckSetInterval();
     const { mnemonicPath, walletDataPath, mainnet } =
       WalletManager.#appConfiguration;
     WalletManager.#wallet = await Wallet.loadFromDisk({
@@ -413,14 +393,8 @@ export class WalletManager {
     WalletManager.#lastAuth = new Date();
   }
 
-  static logout() {
-    console.log(
-      `Logging out - last auth: ${WalletManager.lastAuth?.toLocaleString()}`,
-    );
-    if (WalletManager.authCheckCoroutine) {
-      clearTimeout(WalletManager.authCheckCoroutine);
-      WalletManager.authCheckCoroutine = null;
-    }
+  static disconnect() {
+    console.log(`Disconnecting wallet`);
     WalletManager.#wallet?.disconnect();
     WalletManager.#wallet = null;
   }

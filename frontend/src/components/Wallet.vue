@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
+import { accessToken } from '../auth'
 import CopyIcon from '@/assets/copy.svg'
 import CloseIcon from '@/assets/close.svg'
 
@@ -21,12 +22,16 @@ const destination = ref<string | null>(null)
 const asset = ref<string | null>(null)
 
 async function updateAddress(blockchain: string, addressIdx: number) {
-  const addressRes = await fetch(`/api/wallet/address/${blockchain}?addressIndex=${addressIdx}`)
+  const addressRes = await fetch(`/api/wallet/address/${blockchain}?addressIndex=${addressIdx}`, {
+    headers: { Authorization: `Bearer ${accessToken()}` },
+  })
   address.value = (await addressRes.json()).data
 }
 
 async function updateBalance(blockchain: string, addressIdx: number) {
-  const balanceRes = await fetch(`/api/wallet/balance/${blockchain}?addressIndex=${addressIdx}`)
+  const balanceRes = await fetch(`/api/wallet/balance/${blockchain}?addressIndex=${addressIdx}`, {
+    headers: { Authorization: `Bearer ${accessToken()}` },
+  })
   balance.value = (await balanceRes.json()).data
 }
 
@@ -78,7 +83,7 @@ async function onSubmitTransaction() {
   const res = await fetch('/api/wallet/send', {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken()}` },
     body: JSON.stringify({
       protocol: currentBlockchain.value,
       destination: destination.value,

@@ -4,12 +4,19 @@ export const isLoggedIn = ref<boolean | null>(null)
 
 export async function checkAuth(): Promise<void> {
   try {
-    const res = await fetch('/api/whoami', { credentials: 'include' })
-    const json = await res.json()
-    isLoggedIn.value = Boolean(json.data.loggedIn)
+    const res = await fetch('/api/whoami', {
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${accessToken()}` },
+    })
+    isLoggedIn.value = res.status === 200
   } catch (e) {
+    console.error(`Network error: ${e}`)
     isLoggedIn.value = false
   }
+}
+
+export function accessToken(): string | null {
+  return localStorage.getItem('accessToken')
 }
 
 export async function login(password: string): Promise<{ ok: boolean; error?: string }> {
@@ -24,6 +31,8 @@ export async function login(password: string): Promise<{ ok: boolean; error?: st
       const msg = 'Login failed - invalid password.'
       return { ok: false, error: msg }
     }
+    const json = await res.json()
+    localStorage.setItem('accessToken', json.data.accessToken)
   } catch (e) {
     return { ok: false, error: (e as any)?.message || 'Network error.' }
   }
