@@ -270,7 +270,11 @@ walletApi.get("/balance/:protocol", async (req, res) => {
 });
 const ZSendRequestBody = z.object({
   protocol: ZProtocol.nonoptional(),
-  destination: z.string().trim().min(0, "destination is required").nonoptional(),
+  destination: z
+    .string()
+    .trim()
+    .min(0, "destination is required")
+    .nonoptional(),
   amount: z
     .number()
     .gte(0, "amount must be positive")
