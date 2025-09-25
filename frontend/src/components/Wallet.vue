@@ -3,6 +3,7 @@ import { ref, watch, onMounted } from 'vue'
 import { accessToken, refresh } from '../auth'
 import { toast } from '../toast'
 import TheTransactionMenu from './TheTransactionMenu.vue'
+import TheCryptoLogo from './TheCryptoLogo.vue'
 import CopyIcon from '@/assets/copy.svg'
 
 const blockchains = ref([])
@@ -96,7 +97,12 @@ const onSelectBlockchain = (bc) => (currentBlockchain.value = bc)
     </div>
 
     <div id="page-content">
-      <h1>{{ capitalize(currentBlockchain) }}</h1>
+      <div id="blockchain-name-and-logo">
+        <span id="blockchain-logo">
+          <TheCryptoLogo :current-blockchain="currentBlockchain" />
+        </span>
+        <h1>{{ capitalize(currentBlockchain) }}</h1>
+      </div>
       <table id="address-summary-table">
         <tbody>
           <tr>
@@ -153,10 +159,27 @@ const onSelectBlockchain = (bc) => (currentBlockchain.value = bc)
   min-width: 40rem;
 }
 
+#blockchain-name-and-logo {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  background: blue;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+}
+
+#blockchain-logo {
+  display: flex;
+  min-width: 2rem;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+}
+
 h1 {
   color: var(--color-heading);
   font-weight: bolder;
-  font-size: 1.5rem;
+  font-size: 2rem;
 }
 
 label {
