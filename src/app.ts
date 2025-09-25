@@ -69,6 +69,12 @@ function verifyAuthHeader(
 const app = express();
 const walletApi = express.Router();
 
+app.use(express.json());
+if (process.env.NODE_ENV !== "production") {
+  app.set("json spaces", 2);
+}
+app.use("/wallet", walletApi);
+
 // Validate JWT middleware
 walletApi.use((req, res, next) => {
   const result = verifyAuthHeader(req);
@@ -78,12 +84,6 @@ walletApi.use((req, res, next) => {
   }
   next();
 });
-
-app.use("/wallet", walletApi);
-app.use(express.json());
-if (process.env.NODE_ENV !== "production") {
-  app.set("json spaces", 2);
-}
 
 const ZProtocol = z.enum(Protocols);
 const ZBip32AddressIndex = z.coerce
@@ -268,13 +268,12 @@ walletApi.get("/balance/:protocol", async (req, res) => {
     .then((b) => respond(req, res, StatusCodes.OK, b))
     .catch((e) => respondError(req, res, `Failed to get balance: ${e}`));
 });
-
 const ZSendRequestBody = z.object({
   protocol: ZProtocol.nonoptional(),
-  destination: z.string().nonempty().nonoptional(),
+  destination: z.string().min(0, "destination is required").nonoptional(),
   amount: z
     .number()
-    .gte(0)
+    .gte(0, "amount must be positive")
     .nonoptional()
     .transform((n) => n.toString()),
   addressIndex: ZBip32AddressIndex,
@@ -285,6 +284,7 @@ const ZSendRequestBody = z.object({
 });
 
 walletApi.post("/send", async (req, res) => {
+  console.log(req.body);
   let body = ZSendRequestBody.safeParse(req.body);
   if (!body.success) {
     respondError(req, res, body.error.message, StatusCodes.BAD_REQUEST);

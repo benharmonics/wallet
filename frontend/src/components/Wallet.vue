@@ -2,8 +2,8 @@
 import { ref, watch, onMounted } from 'vue'
 import { accessToken, refresh } from '../auth'
 import { toast } from '../toast'
+import TheTransactionMenu from './TheTransactionMenu.vue'
 import CopyIcon from '@/assets/copy.svg'
-import CloseIcon from '@/assets/close.svg'
 
 const blockchains = ref([])
 
@@ -17,10 +17,6 @@ const balance = ref<string | null>(null)
 
 // transaction menu
 const transactionMenuOpen = ref(false)
-const transactionSubmitted = ref(false)
-const amount = ref<number | null>(null)
-const destination = ref<string | null>(null)
-const asset = ref<string | null>(null)
 
 async function updateAddress(blockchain: string, addressIdx: number) {
   const addressRes = await fetch(`/api/wallet/address/${blockchain}?addressIndex=${addressIdx}`, {
@@ -79,38 +75,6 @@ function copyToClipboard(elementId) {
 }
 
 const onSelectBlockchain = (bc) => (currentBlockchain.value = bc)
-
-async function onSubmitTransaction() {
-  transactionSubmitted.value = true
-  const res = await fetch('/api/wallet/send', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken()}` },
-    body: JSON.stringify({
-      protocol: currentBlockchain.value,
-      destination: destination.value,
-      amount: amount.value,
-      asset: asset.value,
-      addressIndex: addressIndex.value,
-    }),
-  })
-  const json = await res.json()
-  if (res.status >= 300) {
-    throw new Error(`Failed to submit transaction: ${JSON.stringify(json.error)}`)
-  }
-  const data = json.data
-  toast(
-    'success',
-    `Submitted transaction. Response:\n\tTransaction hash: ${data.txHash}\n\tAmount: ${data.amount}\n\tAsset: ${data.asset}`,
-  )
-
-  destination.value = null
-  amount.value = null
-  asset.value = null
-  transactionMenuOpen.value = false
-  transactionSubmitted.value = false
-  setTimeout(() => updateAddressAndBalance(currentBlockchain.value, addressIndex.value), 5000)
-}
 </script>
 
 <template>
@@ -162,37 +126,14 @@ async function onSubmitTransaction() {
           Send
         </button>
       </div>
-      <div id="transaction-menu" v-if="transactionMenuOpen">
-        <div id="transaction-menu-top-row">
-          <h2>Send</h2>
-          <span @click="transactionMenuOpen = false" class="small-icon-container">
-            <img :src="CloseIcon" alt="Close" />
-          </span>
-        </div>
-        <form @submit.prevent="onSubmitTransaction">
-          <label>Destination</label>
-          <input type="text" v-model="destination" placeholder="Enter the destination address" />
-          <label>Amount</label>
-          <input
-            type="number"
-            step="any"
-            min="0.000000000000000001"
-            placeholder="Enter a positive amount"
-            v-model="amount"
-          />
-          <label>Asset (optional)</label>
-          <input
-            type="text"
-            v-model="asset"
-            placeholder="Enter asset or leave blank for native token"
-          />
-          <div id="transaction-menu-bottom-row">
-            <button type="submit" class="normal-button" v-bind:disabled="transactionSubmitted">
-              {{ transactionSubmitted ? 'Submitting…' : 'Submit' }}
-            </button>
-          </div>
-        </form>
-      </div>
+      <TheTransactionMenu
+        :current-blockchain="currentBlockchain"
+        :address-index="addressIndex"
+        v-if="transactionMenuOpen"
+        @tx-submitted="
+          setTimeout(() => updateAddressAndBalance(currentBlockchain, addressIndex), 5000)
+        "
+      />
     </div>
   </section>
 </template>
@@ -213,11 +154,6 @@ h1 {
   color: var(--color-heading);
   font-weight: bolder;
   font-size: 1.5rem;
-}
-
-h2 {
-  color: var(--color-heading);
-  font-weight: bold;
 }
 
 label {
@@ -294,26 +230,5 @@ label {
 .justify-end {
   display: flex;
   justify-content: end;
-}
-
-#transaction-menu {
-  background: var(--color-background-soft);
-  border-radius: 0.5rem;
-  padding: 1rem;
-}
-
-#transaction-menu-top-row {
-  display: flex;
-  justify-content: space-between;
-}
-
-#transaction-menu-bottom-row {
-  display: flex;
-  justify-content: end;
-  padding: 1rem 0 0 0;
-}
-
-form {
-  display: grid;
 }
 </style>
