@@ -1,17 +1,11 @@
 <script setup lang="ts">
 import { isLoggedIn, logout } from '../auth'
-
-const blockchains = ['ethereum', 'bitcoin', 'ripple', 'stellar']
-const capitalize = (s) => (!s ? '' : s[0].toUpperCase() + s.slice(1))
-const onSelectBlockchain = (blockchain) => console.log(blockchain) // TODO
 </script>
 
 <template>
   <nav>
     <div id="page-title">Cachette</div>
-    <div v-if="isLoggedIn">
-      <button @click="logout()" class="nav-btn">Log out</button>
-    </div>
+    <button v-if="isLoggedIn" @click="logout()" class="nav-btn">Log out</button>
   </nav>
 </template>
 
@@ -35,9 +29,8 @@ nav {
   font-weight: bold;
   padding: 0.5rem 1rem;
   min-width: 160px;
+  border-radius: 0.5rem;
 }
 
-.nav-btn:hover {
-  cursor: pointer;
-}
+.nav-btn:hover { cursor: pointer }
 </style>

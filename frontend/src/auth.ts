@@ -1,10 +1,10 @@
 import { ref } from 'vue'
 
+export const isLoggedIn = ref<boolean | null>(null)
+
 export function accessToken(): string | null {
   return localStorage.getItem('accessToken')
 }
-
-export const isLoggedIn = ref<boolean | null>(null)
 
 export async function checkAuth(): Promise<void> {
   try {
