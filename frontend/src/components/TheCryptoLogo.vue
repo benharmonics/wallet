@@ -11,19 +11,19 @@ const props = defineProps<{ currentBlockchain: string | null }>()
 
 function blockchainLogo() {
   switch (props.currentBlockchain) {
-    case "bitcoin":
+    case 'bitcoin':
       return BitcoinIcon
-    case "ethereum":
+    case 'ethereum':
       return EthereumIcon
-    case "ripple":
+    case 'ripple':
       return RippleIcon
-    case "solana":
+    case 'solana':
       return SolanaIcon
-    case "stellar":
+    case 'stellar':
       return StellarIcon
-    case "usdc":
+    case 'usdc':
       return UsdcIcon
-    case "usdt":
+    case 'usdt':
       return UsdtIcon
     default:
       return null

@@ -163,7 +163,7 @@ const onSelectBlockchain = (bc) => (currentBlockchain.value = bc)
   display: flex;
   gap: 1rem;
   align-items: center;
-  background: blue;
+  background: linear-gradient(to right, blue, lightblue);
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
 }
@@ -177,7 +177,7 @@ const onSelectBlockchain = (bc) => (currentBlockchain.value = bc)
 }
 
 h1 {
-  color: var(--color-heading);
+  color: white;
   font-weight: bolder;
   font-size: 2rem;
 }
