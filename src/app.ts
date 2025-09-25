@@ -157,7 +157,7 @@ app.get("/keystore", async (req, res) => {
 });
 
 const ZKeystorePostRequestBody = z.object({
-  password: z.string().trim().min(1, "password must be nonempty").nonoptional(),
+  password: z.string().min(1, "password must be nonempty").nonoptional(),
   mnemonic: z.string().trim().min(1, "given mnemonic is empty").nonoptional(),
 });
 
@@ -234,7 +234,7 @@ walletApi.get("/address/:protocol", async (req, res) => {
 
 const ZBalanceRequestQuery = z.object({
   addressIndex: ZBip32AddressIndex,
-  asset: z.string().optional(),
+  asset: z.string().trim().optional(),
 });
 
 function walletBalanceOptions(
@@ -270,7 +270,7 @@ walletApi.get("/balance/:protocol", async (req, res) => {
 });
 const ZSendRequestBody = z.object({
   protocol: ZProtocol.nonoptional(),
-  destination: z.string().min(0, "destination is required").nonoptional(),
+  destination: z.string().trim().min(0, "destination is required").nonoptional(),
   amount: z
     .number()
     .gte(0, "amount must be positive")
@@ -279,6 +279,7 @@ const ZSendRequestBody = z.object({
   addressIndex: ZBip32AddressIndex,
   asset: z
     .string()
+    .trim()
     .nullable()
     .transform((s) => s ?? ""),
 });
