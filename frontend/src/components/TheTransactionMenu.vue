@@ -6,7 +6,7 @@ import { formatZodError } from '../util'
 import CloseIcon from '@/assets/close.svg'
 
 const emit = defineEmits(['txSubmitted'])
-const { addressIndex, currentBlockchain } = defineProps<{
+const props = defineProps<{
   currentBlockchain: string | null
   addressIndex: number
 }>()
@@ -17,34 +17,18 @@ const destination = ref<string | null>(null)
 const asset = ref<string | null>(null)
 
 async function onSubmit() {
-  const payload = {
-    protocol: currentBlockchain,
-    addressIndex,
-    destination: destination.value,
-    amount: amount.value,
-    asset: asset.value,
-  }
-  const body = JSON.stringify(payload)
-  console.log('body type:', typeof payload, 'json:', body)
-  console.log(
-    'Fetch params:\n',
-    JSON.stringify(
-      {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken()}` },
-        body,
-      },
-      null,
-      2,
-    ),
-  )
   transactionSubmitted.value = true
   const res = await fetch('/api/wallet/send', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken()}` },
-    body,
+    body: JSON.stringify({
+      protocol: props.currentBlockchain,
+      addressIndex: props.addressIndexs,
+      destination: destination.value,
+      amount: amount.value,
+      asset: asset.value,
+    }),
   })
   const json = await res.json()
   if (res.status >= 300) {

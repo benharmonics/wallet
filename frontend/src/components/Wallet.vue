@@ -15,7 +15,6 @@ const addressIndex = ref(0)
 const address = ref<string | null>(null)
 const balance = ref<string | null>(null)
 
-// transaction menu
 const transactionMenuOpen = ref(false)
 
 async function updateAddress(blockchain: string, addressIdx: number) {
@@ -61,6 +60,8 @@ watch(addressIndex, async (newAddressIndex) => {
   await updateAddressAndBalance(currentBlockchain.value, newAddressIndex)
 })
 
+watch(transactionMenuOpen, refresh)
+
 const incrementAddressIndex = () => addressIndex.value++
 const decrementAddressIndex = () => {
   if (addressIndex.value > 0) addressIndex.value--
@@ -72,6 +73,10 @@ function copyToClipboard(elementId) {
   const element = document.getElementById(elementId)
   navigator.clipboard.writeText(element.innerHTML)
   toast('info', 'Copied to clipboard')
+}
+
+function delayedUpdateAndBalanceUpdate(delay: number = 5000) {
+  setTimeout(() => updateAddressAndBalance(currentBlockchain.value, addressIndex.value), delay)
 }
 
 const onSelectBlockchain = (bc) => (currentBlockchain.value = bc)
@@ -130,9 +135,7 @@ const onSelectBlockchain = (bc) => (currentBlockchain.value = bc)
         :current-blockchain="currentBlockchain"
         :address-index="addressIndex"
         v-if="transactionMenuOpen"
-        @tx-submitted="
-          setTimeout(() => updateAddressAndBalance(currentBlockchain, addressIndex), 5000)
-        "
+        @tx-submitted="delayedUpdateAndBalanceUpdate"
       />
     </div>
   </section>
