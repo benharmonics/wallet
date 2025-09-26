@@ -5,7 +5,7 @@ import { toast } from '../toast'
 import { formatZodError } from '../util'
 import CloseIcon from '@/assets/close.svg'
 
-const emit = defineEmits(['txSubmitted'])
+const emit = defineEmits(['txSubmitted', 'close'])
 const props = defineProps<{
   currentBlockchain: string | null
   addressIndex: number
@@ -54,7 +54,7 @@ async function onSubmit() {
   <div id="component">
     <div id="transaction-menu-top-row">
       <h2>Send</h2>
-      <span @click="transactionMenuOpen = false" class="small-icon-container">
+      <span @click="emit('close')" class="small-icon-container">
         <img :src="CloseIcon" alt="Close" />
       </span>
     </div>
@@ -109,27 +109,5 @@ h2 {
 
 form {
   display: grid;
-}
-
-.normal-button {
-  padding: 0.5rem 1rem;
-  font-weight: bold;
-}
-
-.normal-button:hover {
-  cursor: pointer;
-}
-
-.normal-button:disabled:hover {
-  cursor: none;
-}
-
-.small-icon-container {
-  display: inline-block;
-  width: 1em;
-}
-
-.small-icon-container:hover {
-  cursor: pointer;
 }
 </style>

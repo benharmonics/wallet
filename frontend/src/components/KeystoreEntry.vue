@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { formatZodError } from '../util'
-import { toast } from '../toast'
+import { formatZodError } from '@/util'
+import { toast } from '@/toast'
 
 const mnemonic = ref('')
 const password = ref('')

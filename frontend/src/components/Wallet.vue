@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
-import { accessToken, refresh } from '../auth'
-import { toast } from '../toast'
-import TheTransactionMenu from './TheTransactionMenu.vue'
-import TheCryptoLogo from './TheCryptoLogo.vue'
+import { accessToken, refresh } from '@/auth'
+import { toast } from '@/toast'
+import TheTransactionMenu from '@/components/TheTransactionMenu.vue'
+import TheCryptoLogo from '@/components/TheCryptoLogo.vue'
 import CopyIcon from '@/assets/copy.svg'
 
 const blockchains = ref([])
@@ -142,6 +142,7 @@ const onSelectBlockchain = (bc) => (currentBlockchain.value = bc)
         :address-index="addressIndex"
         v-if="transactionMenuOpen"
         @tx-submitted="delayedUpdateAndBalanceUpdate"
+        @close="transactionMenuOpen = false"
       />
     </div>
   </section>
@@ -206,15 +207,6 @@ label {
   text-overflow: ellipsis;
 }
 
-.small-icon-container {
-  display: inline-block;
-  width: 1em;
-}
-
-.small-icon-container:hover {
-  cursor: pointer;
-}
-
 .dropdown {
   position: relative;
   display: inline-block;
@@ -222,19 +214,6 @@ label {
 
 .button-no-click-operation {
   padding: 0.5rem 1rem;
-}
-
-.normal-button {
-  padding: 0.5rem 1rem;
-  font-weight: bold;
-}
-
-.normal-button:hover {
-  cursor: pointer;
-}
-
-.normal-button:disabled:hover {
-  cursor: none;
 }
 
 .dropdown-content {

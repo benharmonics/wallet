@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { login } from '../auth'
-import KeystoreEntry from './KeystoreEntry.vue'
+import { login } from '@/auth'
+import KeystoreEntry from '@/components/KeystoreEntry.vue'
 
 const password = ref('')
 const error = ref<string | null>(null)

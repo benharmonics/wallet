@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { isLoggedIn, logout } from '../auth'
+import { isLoggedIn, logout } from '@/auth'
 </script>
 
 <template>

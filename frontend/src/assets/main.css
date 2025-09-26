@@ -1,1 +1,23 @@
 @import './base.css';
+
+.normal-button {
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+}
+
+.normal-button:hover {
+  cursor: pointer;
+}
+
+.normal-button:disabled:hover {
+  cursor: none;
+}
+
+.small-icon-container {
+  display: inline-block;
+  width: 1em;
+}
+
+.small-icon-container:hover {
+  cursor: pointer;
+}
