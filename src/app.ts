@@ -1,70 +1,16 @@
 import express from "express";
-import { getReasonPhrase, StatusCodes } from "http-status-codes";
-import { JwtPayload } from "jsonwebtoken";
+import { StatusCodes } from "http-status-codes";
 import * as z from "zod";
 import {
   WalletAddressOptions,
   WalletBalanceOptions,
   WalletManager,
 } from "@wallet";
-import { signJwt, verifyJwt } from "@utils/auth";
+import { signJwt } from "@utils/auth";
 import { Protocols } from "./provider";
-
-const JWT_SECRET = "my secret"; // TODO: remove and replace with environment variable
-
-type Result<TData, TError> =
-  | { ok: true; data: TData }
-  | { ok: false; error: TError };
-
-function respond(
-  req: express.Request,
-  res: express.Response,
-  statusCode: number,
-  data: unknown,
-  error?: unknown,
-) {
-  res.status(statusCode).json({
-    timestamp: new Date(),
-    route: req.path,
-    method: req.method,
-    status: getReasonPhrase(statusCode),
-    statusCode,
-    data,
-    error,
-  });
-}
-
-function respondError(
-  req: express.Request,
-  res: express.Response,
-  err: string,
-  statusCode: number = StatusCodes.INTERNAL_SERVER_ERROR,
-) {
-  respond(req, res, statusCode, null, err);
-}
-
-// JWT check - RFC6750 `Authorization: Bearer ...` format
-function verifyAuthHeader(
-  req: express.Request,
-): Result<string | JwtPayload, string> {
-  const authHeader = req.header("Authorization");
-  if (!authHeader) {
-    return {
-      ok: false,
-      error: "header 'Authorization: Bearer <your JWT>' is required",
-    };
-  }
-  const apiKey = authHeader.split("Bearer ")[1];
-  const res = verifyJwt(apiKey, JWT_SECRET);
-  if (!res.ok) {
-    return {
-      ok: false,
-      error:
-        "invalid JWT - please format your header e.g. 'Authorization: Bearer <your JWT>'",
-    };
-  }
-  return { ok: true, data: res.decodedToken };
-}
+import { respond, respondError } from "./response";
+import { jwtSecret, verifyAuthHeader, verifyJwtMiddleware } from "./middleware";
+import { Result } from "@utils/types/result";
 
 const app = express();
 const walletApi = express.Router();
@@ -75,15 +21,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 app.use("/wallet", walletApi);
 
-// Validate JWT middleware
-walletApi.use((req, res, next) => {
-  const result = verifyAuthHeader(req);
-  if (!result.ok) {
-    respondError(req, res, result.error, StatusCodes.UNAUTHORIZED);
-    return;
-  }
-  next();
-});
+walletApi.use(verifyJwtMiddleware);
 
 const ZProtocol = z.enum(Protocols);
 const ZBip32AddressIndex = z.coerce
@@ -104,7 +42,7 @@ app.post("/login", async (req, res) => {
   await WalletManager.auth(body.data.password)
     .then(() => console.log("Authenticated"))
     .then(() => {
-      const accessToken = signJwt(JWT_SECRET);
+      const accessToken = signJwt(jwtSecret);
       respond(req, res, StatusCodes.OK, { accessToken });
     })
     .catch((e) => respondError(req, res, e, StatusCodes.UNAUTHORIZED));
@@ -130,7 +68,7 @@ app.post("/refresh", (req, res) => {
     respondError(req, res, "invalid refresh token", StatusCodes.UNAUTHORIZED);
     return;
   }
-  const accessToken = signJwt(JWT_SECRET);
+  const accessToken = signJwt(jwtSecret);
   respond(req, res, StatusCodes.OK, { accessToken });
 });
 
